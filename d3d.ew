@@ -755,11 +755,10 @@ atom tx,ty,tw,th,offsetx,offsety
   tx=wrap_between(frameindex,0,images_per_row)*tw
   ty=floor((frameindex/images_per_row))*th
 
-  d3d_bind_texture(spritesheet_list[spr][spritesheet_texture])
 
   count+=1
 
-  gl_begin (GL_TRIANGLE_FAN)
+  gl_begin (GL_QUADS)
 
   gl_texCoord2f ( {tx, ty}) gl_vertex3f({ x-offsetx, y-offsety, 0.1+v })
   gl_texCoord2f ( {tx+tw, ty}) gl_vertex3f({ (x+1)-offsetx, y-offsety, 0.1+v })
@@ -796,11 +795,11 @@ atom tx,ty,tw,th,offsetx,offsety
   tx=wrap_between(frameindex,0,images_per_row)*tw
   ty=floor((frameindex/images_per_row))*th
 
-  d3d_bind_texture(spritesheet_list[spr][spritesheet_texture])
+  
 
   count+=1
 
-  gl_begin (GL_TRIANGLE_FAN)
+  gl_begin (GL_QUADS)
 
   gl_texCoord2f ( {tx, ty}) gl_vertex3f({ x-offsetx, y-offsety, 0.1+1 })
   gl_texCoord2f ( {tx+tw, ty}) gl_vertex3f({ (x+size)-offsetx, y-offsety, 0.1+1 })

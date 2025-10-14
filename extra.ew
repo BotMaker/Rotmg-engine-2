@@ -81,28 +81,12 @@ global function atan2(atom y, atom x)
 
 end function
 
-object junk
-junk = {{},{}}
-for j = 360 to 0 by -1 do
-    junk[1] = append(junk[1], sin(j*PI/180) )
-    junk[2] = append(junk[2], cos(j*PI/180) )
-end for
-constant sin_loTRUE2up = junk[1], cos_loTRUE2up = junk[2]
-
-
-	--public float getAngleTo(Location l) {
-	--	return (float) (180-Math.atan2(l.x - this.x, l.y - this.y)*180/Math.PI);
-	--}
 
 global function get_angle_to(atom x, atom y, atom x2, atom y2)
   return (180- atan2(x2 - x ,y2 - y) *180/PI)
 
 end function
 
-
---public  float toRotmgAngle(float angle) {
---return (float) ((angle - 90) / (360 / Math.PI / 2));
---}
 
 global function toRotmgAngle(atom angle)
   return ((angle-90) / (360/PI/2) )

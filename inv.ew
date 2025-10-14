@@ -1,0 +1,39 @@
+global integer selected
+selected=0
+
+global sequence inv_slot_buttons
+inv_slot_buttons={}
+
+global sequence inv
+  inv=repeat({-1,0},12)
+
+
+  --17, 11, 14, 9, wizzard
+  inv[1][1]=#C03
+  inv[1][2]=0 --slotype
+  inv[2][2]=11
+  inv[3][2]=14
+  inv[4][2]=9
+
+  inv[5][1]=#A8D
+  inv[5][1]=#B24
+  --inv[5][2]=real(equip_delta_mod(inv[5][1],equip_slotType))
+
+  inv[6][1]=#910
+  
+ 
+  inv[7][1]=#C04
+  
+  
+
+  inv[8][1]=#915
+  
+
+  inv[9][1]=#C24
+  
+
+  inv[10][1]=#C50
+
+  --inv[11][1]=object_type_from_name("Potion of Life")
+
+  inv[12][1]=object_type_from_name("Arbiters Wrath")

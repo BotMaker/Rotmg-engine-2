@@ -139,6 +139,8 @@ echo xmlall_0.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s xmlall_0.c
 echo projectilexml.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s projectilexml.c
+echo button.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s button.c
 echo wmap.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s wmap.c
 echo zlib.c
@@ -228,6 +230,7 @@ del equipxml.c
 del xmlall.c
 del xmlall_0.c
 del projectilexml.c
+del button.c
 del wmap.c
 del zlib.c
 del input_stream.c

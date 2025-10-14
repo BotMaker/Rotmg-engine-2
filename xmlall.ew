@@ -471,7 +471,6 @@ for j=1 to length(xml_list) do
   ind=str_tol(xml_list[j][1][2])
   if length(object_list[ind])!=0 then
   	puts(1,"error occored\n")
-  	?ind
   end if
 
   object_list[ ind ]=xml_list[j]

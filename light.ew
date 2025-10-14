@@ -1,5 +1,6 @@
 include d3d.ew
 
+
 sequence class_list,class_freelist,light_freelist
 class_list={}
 class_freelist={}
@@ -56,7 +57,7 @@ global function light_tile_color(atom x, atom y)
 	width=texture_list[tex_light][texture_width]
     height=texture_list[tex_light][texture_height]
 
-    gl_color4f({r, g, bcol, 1.0})
+    gl_color4f({r, g, bcol, 0.1})
     gl_begin (GL_QUADS)
 
     for i = 1 to length(class_list) do

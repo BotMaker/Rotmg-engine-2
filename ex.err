@@ -1,0 +1,6 @@
+C:\Users\garet\Desktop\Rotmg-game-engine-master\ROTMG (engine) alpha\open world.exw:548
+premx has not been declared
+  if premx!=mousex or premy!=mousey then
+         ^
+
+

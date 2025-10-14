@@ -1,14 +1,16 @@
+puts(1,"start realm of the god engine\n")
+
+
 include eugl.ew
 include winbmp.ew
 include misc.e
 include database.e
 include light.ew
 
+
 without warning
 without type_check
 
---sequence keyboard_char
---keyboard_char={}
 
 integer keyboard_char
 keyboard_char=0
@@ -30,7 +32,10 @@ include projectile.ew
 
 global integer font0,font1,font2
 global integer spr_players
+constant lighting_switch = 1
 
+
+puts(1,"loading xml data\n")
 include tinyxml.ew
 global atom doc
 doc= tinyxml_document()
@@ -38,6 +43,8 @@ include "groundxml.ew"
 include "equipxml.ew"
 include "xmlall.ew"
 include "projectilexml.ew"
+
+include button.ew
 
 integer objectlist,hashlist,projectilelist
 objectlist=object_new()
@@ -51,10 +58,6 @@ global sequence walkable,obstacle
 walkable={}
 obstacle={}
 
-
-for i= 1 to 100 do
-  ?wrap_between(i,0,27)
-end for
 
 
 
@@ -187,10 +190,12 @@ ttt=90
 facedrawn=0  
 count=0
 
-integer mousex,mousey,mouse_button
+integer mousex,mousey,mouse_button,mouse_button_pressed,mouse_button_clicked
 mousex=0
 mousey=0
 mouse_button=0
+mouse_button_pressed=0
+mouse_button_clicked=0
 integer frames,loop_id
 constant VK_END= #23, VK_HOME= #24
 
@@ -212,6 +217,8 @@ object_bitmaps={}
 
 procedure init()
         integer tex,spr
+		
+		puts(1,"loading graphics\n")
 
         --disable vsyps
         if wgl_supportsExtension("WGL_EXT_swap_control") then
@@ -305,6 +312,7 @@ procedure init()
         object_bitmaps=append(object_bitmaps,{"chars16x16rEncounters", spr,spritesheet_list[spr][4],spritesheet_list[spr][5]})
         tex_light=texture_load("data\\pro.bmp")
 
+        puts(1,"computing graphic lookup tables\n")
 
         ground_set_sprite(object_bitmaps)
 
@@ -333,6 +341,7 @@ procedure init()
 		--gl_polygonMode(GL_FRONT_AND_BACK,GL_LINE)
   
         ewShowCursor(1)
+		puts(1,"loading map\n")
 		map_load()
 end procedure
 
@@ -454,61 +463,7 @@ atom a,b,c
 
 end procedure
 
-
-
-
-
-
-
-
-integer selected
-selected=0
-
-sequence inv
-  inv=repeat({-1,0},12)
-
-
-  --17, 11, 14, 9, wizzard
-  inv[1][1]=#C03
-  inv[1][2]=0 --slotype
-  inv[2][2]=11
-  inv[3][2]=14
-  inv[4][2]=9
-
-  inv[5][1]=#A8D
-  inv[5][1]=#B24
-  --inv[5][2]=real(equip_delta_mod(inv[5][1],equip_slotType))
-
-  inv[6][1]=#910
   
- 
-  inv[7][1]=#C04
-  
-  
-
-  inv[8][1]=#915
-  
-
-  inv[9][1]=#C24
-  
-
-  inv[10][1]=#C50
-
-  --inv[11][1]=object_type_from_name("Potion of Life")
-
-  inv[12][1]=object_type_from_name("Arbiters Wrath")
-
-atom click_time
-click_time=0
-
-integer preselected,premx,premy
-preselected=0
-premx=0
-premy=0
-
-atom hover_time
-hover_time=0
-
 
 procedure draw_description_text(integer x, integer y ,sequence text)
   sequence lines
@@ -544,7 +499,42 @@ procedure draw_description_text(integer x, integer y ,sequence text)
 end procedure
 
 
-procedure gui_draw_inv_slots()
+sequence inv_slot_buttons
+inv_slot_buttons={}
+
+procedure gui_inv_slots_create()
+  integer x ,y,startx,starty,index,tmp
+  
+  startx=610
+  starty=370-40
+
+  x=0
+  y=0
+  
+  for i=1 to 12 do
+  
+    if inv[i][1]!=-1 then
+	  index=inv[i][1]
+	  inv_slot_buttons&=button_new( startx+x, starty+ y, 40, 40,index,i)
+	else
+	  inv_slot_buttons&=button_new( startx+x, starty+ y, 40, 40,-1,-1)
+    end if
+
+	x+=44
+	 
+    if i=4 or i=8 then
+      y+=44
+      x=0
+    end if
+	  
+	
+  end for
+end procedure 
+
+ gui_inv_slots_create()
+
+
+procedure gui_draw_inv_slots2()
   integer x ,y,index,item,slot,startx,starty
   
   --610
@@ -555,12 +545,6 @@ procedure gui_draw_inv_slots()
   x=0
   y=0
 
-  if premx!=mousex or premy!=mousey then
-    premx=mousex
-    premy=mousey
-    hover_time=current_time()+500
-  end if
-
   currentfont=font0
 
   draw_set_color(179,179,179)
@@ -569,42 +553,8 @@ procedure gui_draw_inv_slots()
   draw_set_color(179,179,179)
   draw_text(720, 300,"DEX-"&sprint(dex_stat))
 
-
+  
   for i=1 to 12 do
-
-    if mousex>=startx+x and mousex<=startx+40+x and mousey>=starty+y and mousey<=starty+40+y then
-
-
-     if selected=0 and inv[i][1]!=-1 and mouse_button=1 and shooting=0 then
-       selected=i
-       mouse_button=0
-
-       if preselected=selected and click_time>current_time() then
-         preselected=0
-
-         --double click behavior
-
-         if inv[i][1]=object_type_from_name("potion of speed") then
-           if speed_stat<75 then
-             speed_stat+=1
-             inv[i][1]=-1
-           end if
-         elsif inv[i][1]=object_type_from_name("Potion of Dexterity") then
-           if dex_stat<75 then
-             dex_stat+=1
-             inv[i][1]=-1
-           end if
-         end if
-
-
-       end if
-
-       click_time=current_time()+150
-       preselected=selected
-
-     end if
-     
-    end if
 
     draw_set_color(84,84, 84)
     draw_rectangle(startx+x,starty+y, startx+40+x,starty+40+y, 0)
@@ -615,163 +565,17 @@ procedure gui_draw_inv_slots()
     if inv[i][1]=-1 or selected=i and i>4 then
       draw_text(startx+x+8,starty+y,sprint(i-4))
     end if
-
-    if i=selected then
-
-    else
-      if inv[i][1]!=-1 then
-        index=inv[i][1]
-        draw_spritesheet_texture_ext(startx+3+x,starty+3+y,equip_delta_mod(index,equip_sprite),  equip_delta_mod(index,equip_indexx),34,34)
-      end if
-    end if
-
-    x+=44
+	
+	x+=44
 
     if i=4 or i=8 then
       y+=44
       x=0
     end if
-
 
   end for
-
-  if selected!=0 then
-
-    x=0
-    y=0
-
-    if inv[selected][1]!=-1 then
-      
-      index=inv[selected][1]
-      if click_time<current_time() then
-        draw_spritesheet_texture_ext(mousex-16,mousey-16,equip_delta_mod(index,equip_sprite),  equip_delta_mod(index,equip_indexx),34,34)
-      else
-        for i=1 to 12 do
-          if selected=i then
-            exit
-          end if
-          x+=44
-          if i=4 or i=8 then
-            y+=44
-             x=0
-          end if
-        end for
-
-        draw_spritesheet_texture_ext(startx+3+x,starty+3+y,equip_delta_mod(index,equip_sprite),  equip_delta_mod(index,equip_indexx),34,34)
-      end if
-    end if
-
-
-    x=0
-    y=0
-
-    if mouse_button=2 then --left up
-
-
-      if mousex<600 then
-        inv[selected][1]=-1
-        selected=0
-        return
-      end if
-      
-      for i=1 to 12 do
-
-        if mousex>=startx+x and mousex<=startx+40+x and mousey>=starty+y and mousey<=starty+40+y and selected!=i then
-           item=inv[i][1]
-
-          if inv[i][2]=real(equip_delta_mod(inv[selected][1],equip_slotType)) then
-
-                        
-
-            
-            if inv[i][1]!=-1 then
-              slot=real(equip_delta_mod(inv[i][1],equip_slotType))
-            else
-              slot=0
-            end if
-
-            inv[i][1]=inv[selected][1]
-            
-
-            inv[selected][1]=item
-         
-            
-            
-            exit
-
-          elsif inv[i][2]=0 then --selected item is moving to a any item slot
-            if selected<=4 then
-              if inv[i][1]!=-1 then
-                slot=real(equip_delta_mod(inv[i][1],equip_slotType))
-                if slot=real(equip_delta_mod(inv[selected][1],equip_slotType)) then
-                   inv[i][1]=inv[selected][1]
-            
-
-                  inv[selected][1]=item
-                end if
-              else
-                inv[i][1]=inv[selected][1]
-            
-
-                  inv[selected][1]=item
-              end if
-            else
-              inv[i][1]=inv[selected][1]
-            
-
-              inv[selected][1]=item
-            end if
-
-          end if
-          
-        end if
-        
-        x+=44
-
-        if i=4 or i=8 then
-          y+=44
-          x=0
-        end if
-
-      end for
-
-      selected=0
-    end if
-  end if
-
-  x=0
-  y=0
-  if selected=0 then
-    for i=1 to 12 do
-     if inv[i][1]!=-1 and mousex>=startx+x and mousex<=startx+40+x and mousey>=starty+y and mousey<=starty+40+y then
-
-      if hover_time<current_time() then
-        
-
-        draw_set_color(54,54,54)
-        draw_rectangle(mousex-300,(mousey-200),(mousex-300)+240,(mousey-40),0)
-
-        draw_set_color(0,0,0)
-        draw_rectangle(mousex-300,(mousey-200),(mousex-300)+240,(mousey-40),1)
-
-      
-        currentfont=font0
-        draw_set_color(255,255,255)
-
-        draw_description_text(mousex-300,mousey-200,equip_delta_mod(inv[i][1],equip_description))
-        --draw_text(mousex-200,mousey-200,equip_delta_mod(inv[i][1],equip_description))
-      end if
-      
-     end if
-
-    x+=44
-
-    if i=4 or i=8 then
-      y+=44
-      x=0
-     end if
-    end for
-  end if
+  
+   button_draw()
 
   
 end procedure
@@ -800,46 +604,6 @@ procedure mark_walkable()
 
 end procedure
 
---mark_walkable()
-
-
-procedure render2()
-  sequence object_list
-  integer object_type,mult
-  atom x,y
-
-  object_list=object_get_list( objectlist )
- 
-  for k=1 to length(object_list) do
-    if length(object_list[k]) then
-
-     object_type=object_get_type(objectlist,k)
-     x=object_get_x(objectlist,k)
-     y=object_get_y(objectlist,k)
-     
-     if x>=floor(camera_x)-12 and x<=floor(camera_x)+6 and y>=floor(camera_y)-10 and y<=floor(camera_y)+8 then
-       mult=1
-       if sequence(object_delta(object_type, object_animated)) then
-         mult=7
-       end if
-
-       if sequence(object_delta(object_type, object_size)) then
-         --if object_type=8748 then
-         --  ?object_delta_mod(object_type,object_indexx)
-         --end if
-         --draw_spritesheet_tile6(object_get_x(objectlist,k),object_get_y(objectlist,k),  real(object_delta(object_type, object_size))/100, object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx) )
-       else
-        --draw_spritesheet_tile2(object_get_x(objectlist,k),object_get_y(objectlist,k), object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx) )
-       end if
-
-     end if
-    end if
-  end for
-
-
- 
-end procedure
-
  sequence lights
 lights = {
     {1024+20, 1024+15, 1.0, 0.6, 0.2, 1.0, 0.5},   -- warm torch (orange)
@@ -849,82 +613,16 @@ lights = {
 
 integer light1,light2,light3
 
+--light1=light_new(1024+20, 1024+15, 1.0, 0.6, 0.2, 1.0, 10)
+--light2=light_new(1024+35, 1024+18, 0.3, 0.5, 1.0, 0.8, 8)
+--light3=light_new(1024+50, 1024+10, 1.0, 1.0, 1.0, 0.7, 6)
+
+
 light1=light_new(1024+20, 1024+15, 1.0, 0.6, 0.2, 1.0, 10)
-light2=light_new(1024+35, 1024+18, 0.3, 0.5, 1.0, 0.8, 8)
-light3=light_new(1024+50, 1024+10, 1.0, 1.0, 1.0, 0.7, 6)
+light2=light_new(1024+25, 1024+18, 0.3, 0.5, 1.0, 0.8, 8)
+light3=light_new(1024+30, 1024+21, 1.0, 1.0, 1.0, 0.7, 6)
 
-global function get_light_brightness(atom x, atom y)
-    atom brightness 
-    atom dx, dy, dist2, radius2, b
-    brightness =0.4
-	
-    for i = 1 to length(lights) do
-        dx = x - lights[i][1]
-        dy = y - lights[i][2]
-        dist2 = dx*dx + dy*dy
-        radius2 = lights[i][4]
-
-        if dist2 < radius2 then
-            -- smooth linear fade
-            b = 1 - (dist2 / radius2)
-            b = b * lights[i][3]
-            if b > brightness then
-                brightness = b
-            end if
-        end if
-    end for
-
-    if brightness > 1 then brightness = 1 end if
-    return brightness
-end function
-
-
--- ===========================================================
--- Compute total color brightness for one tile
--- ===========================================================
-global function get_tile_color(atom x, atom y)
-    atom dx,dy,dist2,radius2,b,r,g,bcol,ambient
-    
-    r = 0.0
-	g = 0.0
-	bcol = 0.0
-    ambient = 0.25  -- base ambient darkness
-
-    for i = 1 to length(lights) do
-        dx = x - lights[i][1]
-        dy = y - lights[i][2]
-        dist2 = dx*dx + dy*dy
-        radius2 = lights[i][7]
-
-        if dist2 < radius2 then
-            -- quadratic smooth fade (no sqrt)
-            b = 1 - (dist2 / radius2)
-            if b < 0 then b = 0 end if
-            b = b * b
-            b = b * lights[i][6]  -- intensity
-
-            -- accumulate light color
-            r += lights[i][3] * b
-            g += lights[i][4] * b
-            bcol += lights[i][5] * b
-        end if
-    end for
-
-    -- add ambient minimum
-    r += ambient
-    g += ambient
-    bcol += ambient
-
-    -- clamp
-    if r > 1 then r = 1 end if
-    if g > 1 then g = 1 end if
-    if bcol > 1 then bcol = 1 end if
-
-    return {r, g, bcol}
-end function
-
-
-function get_brightness(atom x, atom y, atom posx,atom posy)
+global function get_brightness(atom x, atom y, atom posx,atom posy)
 atom dx,dy,dist2,brightness
                 -- Distance squared from player
                 dx = x- posx
@@ -944,20 +642,49 @@ atom dx,dy,dist2,brightness
 	return brightness		
 end function
 
+global function get_brightness_render(atom x, atom y, atom posx,atom posy)
+atom dx,dy,dist2,brightness
+                -- Distance squared from player
+                dx = x- posx
+                dy = y- posy
+                dist2 = dx*dx + dy*dy
+
+                -- Use inverse falloff without sqrt
+                -- Tweak divisor to control light radius (e.g. 64 = 8^2)
+                brightness = 1 - (dist2 / (128 + zoom_scale*zoom_scale))
+
+                -- Clamp brightness between 0.4 and 1.0
+                if brightness < 0.2 then
+                    brightness = 0.2
+                elsif brightness > 1.0 then
+                    brightness = 1.0
+                end if
+	return brightness		
+end function
+
 
 procedure render()
   integer mult,object_type
-  atom v,brightness
+  atom v,brightness,last_brightness
+  last_brightness=-1
 
   v=0
-
-
+    gl_texEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
     for y=floor(camera_y)-(12+zoom_scale) to floor(camera_y)+(8+zoom_scale) do
       for x=floor(camera_x)-(14+zoom_scale) to floor(camera_x)+(6+zoom_scale) do
-      --brightness=get_brightness(x,y,player_x,player_y)
-	  --gl_color4f({brightness, brightness, brightness, 1})
+         if lighting_switch=1 then
+           brightness=get_brightness_render(x,y,player_x,player_y)
+		   
+		   if ext:abs(brightness - last_brightness) > 0.05 then
+             gl_color4f({brightness, brightness, brightness, 0})
+             last_brightness = brightness
+           end if
+          
+		   
+	       gl_color4f({brightness, brightness, brightness, 1})
+		end if
 	  
-	  
+	  --gl_color4f({0, 0, 0, 0}	  
       object_type=obstacle[y][x]
 
       if  object_type>0 and x>0 and y>0 and x<map_width and y<map_height then
@@ -971,8 +698,11 @@ procedure render()
 
        if object_delta_mod(object_type,object_sprite)!=0 then
         if sizedata[y][x]!=0 then
+		  d3d_bind_texture(spritesheet_list[object_delta_mod(object_type,object_sprite)][spritesheet_texture])
           draw_spritesheet_tile6(x,y,  sizedata[y][x]/100, object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx) ,v )
         else
+		  
+		  d3d_bind_texture(spritesheet_list[object_delta_mod(object_type,object_sprite)][spritesheet_texture])
           draw_spritesheet_tile6(x,y,  real(object_delta(object_type, object_size))/100, object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx),v )
         end if
        end if
@@ -981,11 +711,13 @@ procedure render()
         if object_delta_mod(object_type,object_sprite)!=0 then
           
         if sizedata[y][x]!=0 then
+		  d3d_bind_texture(spritesheet_list[object_delta_mod(object_type,object_sprite)][spritesheet_texture])
           draw_spritesheet_tile6(x,y,  sizedata[y][x]/100, object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx),v )
         else
+		 d3d_bind_texture(spritesheet_list[object_delta_mod(object_type,object_sprite)][spritesheet_texture])
          draw_spritesheet_tile2(x,y, object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx),v )
         end if
-          --draw_spritesheet_tile2(x,y, object_delta_mod(object_type,object_sprite), mult*object_delta_mod(object_type,object_indexx) )
+          
         end if
       end if
 
@@ -1003,160 +735,6 @@ end procedure
 
 
 
-integer speed,radius,targetRadius
-atom ex,ey
-ex=70
-ey=75
-
-speed=4
-radius=7
-targetRadius=4
-
-atom vector_x,vector_y
-vector_x=0
-vector_y=0
-
-
-
-function Validate(atom x, atom y)
-
-   if x < 1 or x >= 128 or y < 0 or y >= 128 then
-       return 0
-   end if
-
-   if walkable[floor(y)][floor(x)] != 1 then
-      return 0
-   end if
-
-   return 1
-end function
-
-function ValidateAndMove(atom x, atom y)
-  if (Validate(x, y)) then
-     --Host.Self.Move(x, y)
-    ex=x
-    ey=y
-  --elsif (Validate(Host.Self.X, y)) then
-    --Host.Self.Move(Host.Self.X, y)
-  --elsif (Validate(x, Host.Self.Y))    
-    --Host.Self.Move(x, Host.Self.Y)
-  else
-    return 0
-  end if
-            return 1
-end function
-
-
-
-function GetMagnitude( )
-   return sqrt(vector_x * vector_x + vector_y * vector_y)
-end function
-
-procedure Normalize()
-
-    atom  magnitude
-    magnitude = GetMagnitude()
-
-    if (magnitude = 0.0) then
-        magnitude = 0.000001
-    end if
-
-    vector_x /= magnitude
-    vector_y /= magnitude
-end procedure
-
-procedure Multpile(atom v)
-    vector_x *= v
-    vector_y *= v
-end procedure
-
-
-function DistSqr()
-atom dx,dy
-  dx = player_x - ex
-  dy = player_y - ey
-  return dx * dx + dy * dy
-end function
-
-function Dist()
-  return sqrt(DistSqr())
-end function
-
-
-
-function TickCore(atom time)
-atom dist
-atom tx,ty,x,y
-integer bool
-
---speed=
- 
-dist = radius --search area for nearest player
-
- dist =Dist() --dist to nearest player
- --?dist
-
- if (dist > targetRadius) then
-
-   tx = player_x --+ rand.Next(-2, 2) / 2f
-   ty = player_y --+ rand.Next(-2, 2) / 2f
-
-   if (tx != ex or ty != ey) then
-     x = ex
-     y = ey
-     vector_x=tx
-     vector_y=ty
-     vector_x-=ex
-     vector_y-=ey
-     Normalize()
-     
-     --vect *= (speed / 1.5f) * (time / 1000f)
-     Multpile((speed / 1.5) * (time / 1000.0))
-
-     bool=ValidateAndMove(ex + vector_x, ey + vector_y)
-   end if
-
-   return 1
-  
- else 
-   return 0
- end if
-end function
-
-
-
-atom remainingDist,sx,sy
-remainingDist=0
-sx=0
-sy=0
-
-function rand2()
- sequence list
- list={-1,0,1,2}
- return list[rand(length(list))]
-end function
-
-function TickCore2(atom time)
-atom dist
-integer bool,ret
-
-dist = (speed / 1.5) * (time / 1000.0)
-remainingDist -= dist
-bool=ValidateAndMove(ex + sx * dist, ey + sy * dist)
-
-if remainingDist <= 0 then
-  
-  sx = rand2()
-  sy = rand2()
-
-  remainingDist = dist + dist * (0.01700087 * 0.1 - 0.05)
-  ret = 1
-else
-  ret = 0
-end if
-  return ret
-end function
-
 
 sequence input_string
 input_string=""
@@ -1165,8 +743,16 @@ integer input_onoff
 input_onoff=0
 
 
+atom light_dir,light_speed,light_change_time
+atom start_x,start_y
+light_dir=0
+light_speed=10
+light_change_time=current_time()+1
 
+start_x=light_get_x(light1)
+start_y=light_get_y(light1)
 
+constant TARGET_FRAME_MS = 8    		  
 
 procedure draw()
 
@@ -1180,8 +766,23 @@ last_brightness = -1
 
 d3d_set_count(0)
 
-    frametime =current_time()
-    
+     -- Store time for next frame
+    frametime = current_time()
+	
+	if current_time()>light_change_time then
+	  light_change_time=current_time()+1
+	  light_dir+=1
+	  --puts(1,"time\n")
+	  --?light_change_time
+	  --?current_time()+0.01
+	  if light_dir>=360 then
+	  light_dir=0
+	  end if
+	  --light_set_x(light1, player_x+cos(light_dir*PI/180)*light_speed)
+      --light_set_y(light1,player_y-sin(light_dir*PI/180)*light_speed)
+	end if
+	
+	
     gl_clear(GL_COLOR_BUFFER_BIT + GL_DEPTH_BUFFER_BIT)
 
 	--normal projection
@@ -1201,6 +802,8 @@ gl_color4f({1, 1,1, 1})
          index=mapdata[y][x]
          
          if index>0 then
+		 
+		   if lighting_switch=1 then
 		   brightness=get_brightness(x,y,player_x,player_y)
 		   
 		   if ext:abs(brightness - last_brightness) > 0.05 then
@@ -1209,22 +812,26 @@ gl_color4f({1, 1,1, 1})
            end if
           
 		   gl_color4f({brightness, brightness, brightness, 1})
+		   end if
            draw_spritesheet_tile(x,y,sprdata[y][x], framedata[y][x])
-		  
+		   
          end if
          end if
       end for
     end for
 
 
-
+   render()
    gl_disable(GL_DEPTH_TEST)
    gl_enable(GL_TEXTURE_2D)
    gl_enable(GL_BLEND)
    gl_blendFunc(GL_SRC_ALPHA, GL_ONE)
    gl_texEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
    d3d_bind_texture(tex_light)          -- your light_circle.png
+   
+   if lighting_switch=1 then
    light_draw2(camera_x, camera_y)
+   end if
    gl_disable(GL_BLEND)
    gl_enable(GL_DEPTH_TEST)
    gl_blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -1232,7 +839,7 @@ gl_color4f({1, 1,1, 1})
    gl_enable(GL_DEPTH_TEST)
    d3d_bind_texture(1) 
    gl_color4f({1, 1, 1, 1})
-  render()
+  
   
   
 
@@ -1241,7 +848,7 @@ gl_color4f({1, 1,1, 1})
   --draw_texturesheet_floor(80,80, 1,7,   21+21,  0.1+(0.1/-80))
   --draw_texturesheet_floor(80.5, 78+xxx,1,7,  21+21,  0.1+(0.1/-(78+xxx)))
 
-  draw_spritesheet_floor(ex,ey, 1, spr_players, 21+21)
+  --draw_spritesheet_floor(ex,ey, 1, spr_players, 21+21)
 
 player_draw()
   --player_name_draw()
@@ -1261,17 +868,13 @@ player_draw()
   d3d_set_projection_ortho(0,0,800,600,0)
   d3d_set_hidden(0)
   draw_set_color(128,128,128)
-  d3d:draw_line(0,0,100,100)
+  --d3d:draw_line(0,0,100,100)
 
   draw_set_color(54,54,54)
   draw_rectangle(600,0,800,600,0)
 
 
-  gui_draw_inv_slots()
-
-  for i=1 to 1 do
-   -- draw_texture(608,408,4)
-  end for
+  gui_draw_inv_slots2()
   
 
 
@@ -1325,9 +928,7 @@ if input_onoff=1 then
   draw_set_color(255,255,255)
   draw_text(0,600-20,input_string)
 end if
-  
-
-
+ 
   
   d3d_set_hidden(1)
 
@@ -1338,19 +939,12 @@ end if
 
     deltatime=current_time()-frametime
 
-
-    
-    --?deltatime
-
-    if deltatime <16 then
-      --usleep(16-deltatime)
-      --?16-deltatime
-      --?deltatime
+    -- Sleep if the frame was too fast
+    if deltatime < TARGET_FRAME_MS then
+      --usleep((TARGET_FRAME_MS - floor(deltatime)) )  -- convert ms → µs
     end if
 
-   --?rand(2)
-
-
+  
 end procedure
 
 atom start_time
@@ -1410,7 +1004,7 @@ y=0
   for i=1 to numofshoot do
      --res=projectile_enemy_enter(client_list[client][client_projectile_enemy],sx, sy,  (angle + (angleInc * i)), current_time(), bulletId,  ownerId, bulletType+1, ownerId)
 
-     ret=projectile_enter(projectilelist,player_x+x,player_y+y, get_angle_to(300,300,mousex,mousey)+(arcgap * i), current_time() ,bullet_id, inv[1][1], light_new( player_x+x, player_y+y, 1.0, 0.8, 0.6, 1.0, 0.5) )
+     ret=projectile_enter(projectilelist,player_x+x,player_y+y, get_angle_to(300,300,mousex,mousey)+(arcgap * i), current_time() ,bullet_id, inv[1][1], light_new( player_x+x, player_y+y, 1.0, 0.8, 0.6, 1.0, 1) )
      bullet_id+=1
   
        if arcgap=0 and numofshoot=2 then
@@ -1516,7 +1110,7 @@ else
 	zoom_scale-=1
   end if
 
-     if mouse_button=1 and selected=0 and inv[1][1]>0 then 
+  if mouse_button=1 and selected=0 and inv[1][1]>0 then 
     shooting=1
     if shoot_time<current_time() then
       shoot_time=current_time()+rate_of_fire(inv[1][1])
@@ -1527,21 +1121,9 @@ else
   end if
 
   if input_onoff=0 then
-
-  player_update()
-
+    player_update()
   end if
-  
 
-
-      if not(TickCore(deltatime))=1 then
-      --?deltatime
-      if TickCore2(deltatime) then
-
-      end if
-    end if
-
-        
   euglTimerFunc(30,loop_id,0)
 end procedure
 loop_id = routine_id("loop")
@@ -1561,28 +1143,30 @@ procedure key(integer keycode,integer mode,integer y)
          key_remove(keycode)
         end if
 
-   
-
-
 end procedure
 
 procedure mouse(integer event,integer v1,integer v2,integer v3)
   if event=EUGL_LEFT_BUTTON and v1=EUGL_DOWN then
     --puts(1,"left mouse down\n")
     mouse_button=1
+	mouse_button_pressed=1
+	mouse_button_clicked=1
+	button_mouse_pressed(mousex,mousey)
+
   elsif event=EUGL_LEFT_BUTTON and v1=EUGL_UP then
     --puts(1,"left mouse up\n")
     mouse_button=2
+	mouse_button_pressed=0
+	button_mouse_released(mousex,mousey)
   end if
-
 end procedure
 
 
 
 procedure motion(integer x,integer y)
-
   mousex=x
   mousey=y
+  button_update_mouse(x,y)
 end procedure
 
 
