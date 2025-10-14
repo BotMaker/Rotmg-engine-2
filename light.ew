@@ -1,0 +1,307 @@
+include d3d.ew
+
+sequence class_list,class_freelist,light_freelist
+class_list={}
+class_freelist={}
+light_freelist={}
+
+global integer tex_light
+
+constant light_x = 1
+constant light_y = 2
+constant light_r = 3
+constant light_g = 4
+constant light_b = 5
+constant light_val=6
+constant light_radius=7
+
+
+global function light_new(atom x, atom y, atom r, atom g, atom b, atom val, atom radius)
+  integer handle
+  if length(class_freelist)>0 then
+    handle= class_freelist[1]
+    class_freelist = class_freelist[2..length(class_freelist)]
+  else
+    class_list= append(class_list,{})
+	light_freelist= append(light_freelist,{})
+    handle=length(class_list)
+  end if
+
+  class_list[handle]={0,0,0,0,0,0,0}
+  light_freelist[handle]={}
+  
+  class_list[handle][light_x]=x
+  class_list[handle][light_y]=y
+  class_list[handle][light_r]=r
+  class_list[handle][light_g]=g
+  class_list[handle][light_b]=b
+  class_list[handle][light_val]=val
+  class_list[handle][light_radius]=radius 
+  return handle
+end function
+
+
+global function light_tile_color(atom x, atom y)
+    atom dx,dy,dist2,radius2,b,r,g,bcol,ambient,width,height
+    
+    r = 0.0
+	g = 0.0
+	bcol = 0.0
+    ambient = 0.25  -- base ambient darkness
+
+	d3d_bind_texture(tex_light)
+	gl_enable (GL_BLEND)
+    gl_blendFunc (GL_ONE, GL_ONE)
+	
+	width=texture_list[tex_light][texture_width]
+    height=texture_list[tex_light][texture_height]
+
+    gl_color4f({r, g, bcol, 1.0})
+    gl_begin (GL_QUADS)
+
+    for i = 1 to length(class_list) do
+	  if length(class_list[i]) then
+        dx = x - class_list[i][1]
+        dy = y - class_list[i][2]
+        dist2 = dx*dx + dy*dy
+        radius2 = class_list[i][7]
+
+        if dist2 < radius2 then
+            -- quadratic smooth fade (no sqrt)
+            b = 1 - (dist2 / radius2)
+            if b < 0 then b = 0 end if
+            b = b * b
+            b = b * class_list[i][6]  -- intensity
+
+            -- accumulate light color
+            r += class_list[i][3] * b
+            g += class_list[i][4] * b
+            bcol += class_list[i][5] * b
+			
+			    -- add ambient minimum
+    r += ambient
+    g += ambient
+    bcol += ambient
+
+    -- clamp
+    if r > 1 then r = 1 end if
+    if g > 1 then g = 1 end if
+    if bcol > 1 then bcol = 1 end if
+	
+	  gl_texCoord2f ( {0, 0}) gl_vertex2f({ x, y })
+  gl_texCoord2f ( {1, 0}) gl_vertex2f({ x+1, y })
+  gl_texCoord2f ( {1, 1}) gl_vertex2f({ x+1, y+1 })
+  gl_texCoord2f ( {0, 1}) gl_vertex2f({ x, y+1 })
+    gl_end()
+
+    
+	
+        end if
+	  end if
+    end for
+
+gl_blendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+	
+
+
+
+
+    return {r, g, bcol}
+end function
+
+
+global procedure light_draw_test()
+    atom cx, cy, radius,screen_width, screen_height
+	
+	screen_width=800
+	screen_height=640
+    cx = screen_width / 2
+    cy = screen_height / 2
+    radius = 64       -- light radius on screen
+
+    -- Make sure 2-D drawing state is correct
+    gl_matrixMode(GL_PROJECTION)
+    gl_loadIdentity()
+    gl_ortho(0, screen_width, screen_height, 0, -1, 1)
+    gl_matrixMode(GL_MODELVIEW)
+    gl_loadIdentity()
+
+    gl_enable(GL_TEXTURE_2D)
+   gl_enable(GL_BLEND)
+gl_blendFunc(GL_SRC_ALPHA, GL_ONE)
+gl_texEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+    d3d_bind_texture(tex_light)          -- your light_circle.png
+
+    -- draw one big red light in the center of the screen
+    gl_color4f({1.0, 0.0, 0.0, 1.0})
+    gl_begin(GL_QUADS)
+        gl_texCoord2f({0,0}) gl_vertex2f({cx - radius, cy - radius})
+        gl_texCoord2f({1,0}) gl_vertex2f({cx + radius, cy - radius})
+        gl_texCoord2f({1,1}) gl_vertex2f({cx + radius, cy + radius})
+        gl_texCoord2f({0,1}) gl_vertex2f({cx - radius, cy + radius})
+    gl_end()
+	
+
+
+
+    gl_blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+	gl_texEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE) 
+	
+		-- Restore camera matrices
+		 gl_matrixMode(GL_MODELVIEW)
+    gl_popMatrix()
+		gl_matrixMode(GL_PROJECTION)
+    gl_popMatrix()
+   
+    
+end procedure
+
+
+
+
+global procedure light_draw2(atom camera_x, atom camera_y)
+    atom lx, ly, radius, r, g, b, intensity,sx,sy
+
+
+
+
+    -- Draw one quad for each light source
+    for i = 1 to length(class_list) do
+        if length(class_list[i]) then
+            lx = class_list[i][1]
+            ly = class_list[i][2]
+            r  = class_list[i][3]
+            g  = class_list[i][4]
+            b  = class_list[i][5]
+            intensity = class_list[i][6]
+            radius = class_list[i][7]
+			
+		   sx = lx 
+           sy = ly 
+
+          gl_color4f({r, g, b, intensity})
+
+          gl_begin(GL_QUADS)
+          gl_texCoord2f({0,0}) gl_vertex3f({sx - radius, sy - radius,0.3})
+          gl_texCoord2f({1,0}) gl_vertex3f({sx + radius, sy - radius,0.3})
+          gl_texCoord2f({1,1}) gl_vertex3f({sx + radius, sy + radius,0.3})
+          gl_texCoord2f({0,1}) gl_vertex3f({sx - radius, sy + radius,0.3})
+          gl_end()
+        end if
+    end for
+
+end procedure
+
+
+
+
+global procedure light_draw(atom x, atom y)
+    atom dx,dy,dist2,radius2,b,r,g,bcol,ambient,width,height
+    
+    r = 0.0
+	g = 0.0
+	bcol = 0.0
+    ambient = 0.25  -- base ambient darkness
+
+	d3d_bind_texture(tex_light)
+	gl_enable (GL_BLEND)
+    gl_blendFunc (GL_ONE, GL_ONE)
+	
+	width=texture_list[tex_light][texture_width]
+    height=texture_list[tex_light][texture_height]
+
+    gl_color4f({r, g, bcol, 1.0})
+    gl_begin (GL_QUADS)
+
+    for i = 1 to length(class_list) do
+	  if length(class_list[i]) then
+        dx = x - class_list[i][1]
+        dy = y - class_list[i][2]
+        dist2 = dx*dx + dy*dy
+        radius2 = class_list[i][7]
+
+        if dist2 < radius2 then
+            -- quadratic smooth fade (no sqrt)
+            b = 1 - (dist2 / radius2)
+            if b < 0 then b = 0 end if
+            b = b * b
+            b = b * class_list[i][6]  -- intensity
+
+            -- accumulate light color
+            r += class_list[i][3] * b
+            g += class_list[i][4] * b
+            bcol += class_list[i][5] * b
+			
+			    -- add ambient minimum
+    r += ambient
+    g += ambient
+    bcol += ambient
+
+    -- clamp
+    if r > 1 then r = 1 end if
+    if g > 1 then g = 1 end if
+    if bcol > 1 then bcol = 1 end if
+
+gl_begin (GL_QUADS)
+	  gl_texCoord2f ( {0, 0}) gl_vertex2f({ x, y })
+  gl_texCoord2f ( {1, 0}) gl_vertex2f({ x+1, y })
+  gl_texCoord2f ( {1, 1}) gl_vertex2f({ x+1, y+1 })
+  gl_texCoord2f ( {0, 1}) gl_vertex2f({ x, y+1 })
+    gl_end()
+
+    
+	
+        end if
+	  end if
+    end for
+
+gl_blendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+	
+
+
+end procedure
+
+
+
+global function light_get_list(integer handle)
+  return class_list[handle]
+end function
+
+global function light_get_free_size(integer handle)
+  return length(light_freelist[handle])
+end function
+
+
+global function light_get_freelist(integer handle)
+  return light_freelist[handle]
+end function
+
+
+global function light_get_x(integer handle)
+  return class_list[handle][light_x]
+end function
+
+global function light_get_y(integer handle)
+  return class_list[handle][light_y]
+end function
+
+global function light_get_totalnumber()
+  return length(class_list)
+end function
+
+global procedure light_set_x(integer handle, atom x)
+  class_list[handle][light_x]=x
+end procedure
+
+global procedure light_set_y(integer handle, atom y)
+  class_list[handle][light_y]=y
+end procedure
+
+
+
+
+global procedure light_delete(integer handle)
+  class_list[handle]={}
+  light_freelist[handle]={}
+  class_freelist =append(class_freelist, handle)
+end procedure
