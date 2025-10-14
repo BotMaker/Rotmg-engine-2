@@ -413,7 +413,7 @@ integer images_per_row
  v=0
 d3d_transform_set_identity()
 
- 
+ count+=1
   tw = spritesheet_list[spr][spritesheet_texture_tw]
   th = spritesheet_list[spr][spritesheet_texture_th]
 

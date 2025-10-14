@@ -1,0 +1,161 @@
+-- Enemy constants
+global constant ENEMY_X = 1
+global constant ENEMY_Y = 2
+global constant ENEMY_HEALTH = 3
+global constant ENEMY_SPEED = 4
+global constant ENEMY_STATE = 5  -- 0 = wander, 1 = chase, 2 = flee
+global constant ENEMY_TARGET_X = 6
+global constant ENEMY_TARGET_Y = 7
+global constant ENEMY_SPRITE = 8  -- spritesheet
+global constant ENEMY_FRAMEINDEX = 9  -- Index to spritesheet
+global constant ENEMY_GRID_HANDLE = 10
+
+-- Global enemy data
+global sequence enemy_list, class_freelist, enemy_freelist
+enemy_list = {}
+class_freelist ={}
+enemy_freelist = {}
+
+
+-- Function to create a new enemy
+global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite)
+    integer handle
+	if length(enemy_freelist) > 0 then
+        handle = enemy_freelist[1]
+        enemy_freelist = enemy_freelist[2..length(enemy_freelist)]
+    else
+        enemy_list = append(enemy_list, {})
+        handle = length(enemy_list)
+    end if
+	
+	
+	enemy_list[handle]={0,0,0,0,0,0,0,0,0,0,0}
+	--enemy_freelist[handle]={}
+
+    enemy_list[handle] = {x, y, health, speed, 0, 0, 0, sprite,rand(220),grid_new(x,y,handle)}  -- Initial state is wander
+    return handle
+end function
+
+-- Function to get enemy properties
+global function enemy_get_x(integer handle)
+    return enemy_list[handle][ENEMY_X]
+end function
+
+global function enemy_get_y(integer handle)
+    return enemy_list[handle][ENEMY_Y]
+end function
+
+global function enemy_get_state(integer handle)
+    return enemy_list[handle][ENEMY_STATE]
+end function
+
+global procedure enemy_set_x(integer handle, atom x)
+    enemy_list[handle][ENEMY_X] = x
+end procedure
+
+global procedure enemy_set_y(integer handle, atom y)
+    enemy_list[handle][ENEMY_Y] = y
+end procedure
+
+global procedure enemy_delete(integer handle)
+    integer grid_handle
+	
+	if handle < 1 or handle > length(enemy_list) then 
+      puts(1,"enemy_delete error\n")
+      return 
+    end if
+	if length( enemy_list[handle]) then
+	grid_handle = enemy_list[handle][ENEMY_GRID_HANDLE]
+    empty_delete(grid_handle)
+	
+    enemy_list[handle] = {}
+    enemy_freelist = append(enemy_freelist, handle)
+	end if
+end procedure
+
+
+
+
+-- Constants for behavior
+constant WANDER_RADIUS = 50.0
+constant CHASE_RANGE = 10.0
+constant FLEE_RANGE = 50.0
+constant FLEE_THRESHOLD = 30.0  -- Health percentage to trigger flee
+
+-- Update enemy behavior
+global procedure enemy_update(integer handle)
+    atom dx, dy, dist, angle, move_x, move_y
+    integer state,grid_handle
+    atom health_percent
+
+    if not length(enemy_list[handle]) then
+        return
+    end if
+
+    state = enemy_list[handle][ENEMY_STATE]
+    health_percent = enemy_list[handle][ENEMY_HEALTH] / 100.0  -- Assuming max health is 100
+	grid_handle = enemy_list[handle][ENEMY_GRID_HANDLE]
+
+    -- Calculate distance to player
+    dx = player_x - enemy_list[handle][ENEMY_X]
+    dy = player_y - enemy_list[handle][ENEMY_Y]
+    dist = sqrt(dx * dx + dy * dy)
+
+    -- State transition logic
+    if health_percent <= FLEE_THRESHOLD / 100.0 or (state = 2 and dist < FLEE_RANGE) then
+        state = 0  -- Flee
+    elsif dist < CHASE_RANGE then
+        state = 1  -- Chase
+    else
+        state = 0  -- Wander
+    end if
+    enemy_list[handle][ENEMY_STATE] = state
+
+    -- Movement based on state
+    if state = 0 then  -- Wander
+        if rand(100) < 10 then  -- 10% chance to change direction
+            angle = rand(360) * PI / 180.0
+            enemy_list[handle][ENEMY_TARGET_X] = enemy_list[handle][ENEMY_X] + cos(angle) * WANDER_RADIUS
+            enemy_list[handle][ENEMY_TARGET_Y] = enemy_list[handle][ENEMY_Y] + sin(angle) * WANDER_RADIUS
+        end if
+        dx = enemy_list[handle][ENEMY_TARGET_X] - enemy_list[handle][ENEMY_X]
+        dy = enemy_list[handle][ENEMY_TARGET_Y] - enemy_list[handle][ENEMY_Y]
+        dist = sqrt(dx * dx + dy * dy)
+        if dist > 1.0 then
+            move_x = enemy_list[handle][ENEMY_X] + (dx / dist) * enemy_list[handle][ENEMY_SPEED]
+            move_y = enemy_list[handle][ENEMY_Y] + (dy / dist) * enemy_list[handle][ENEMY_SPEED]
+            enemy_set_x(handle, move_x)
+            enemy_set_y(handle, move_y)
+        end if
+
+    elsif state = 1 then  -- Chase
+        enemy_list[handle][ENEMY_TARGET_X] = player_x
+        enemy_list[handle][ENEMY_TARGET_Y] = player_y
+        dx = enemy_list[handle][ENEMY_TARGET_X] - enemy_list[handle][ENEMY_X]
+        dy = enemy_list[handle][ENEMY_TARGET_Y] - enemy_list[handle][ENEMY_Y]
+        dist = sqrt(dx * dx + dy * dy)
+        if dist > 1.0 then
+            move_x = enemy_list[handle][ENEMY_X] + (dx / dist) * enemy_list[handle][ENEMY_SPEED]
+            move_y = enemy_list[handle][ENEMY_Y] + (dy / dist) * enemy_list[handle][ENEMY_SPEED]
+            enemy_set_x(handle, move_x)
+            enemy_set_y(handle, move_y)
+        end if
+
+    elsif state = 2 then  -- Flee
+        dx = enemy_list[handle][ENEMY_X] - player_x
+        dy = enemy_list[handle][ENEMY_Y] - player_y
+        dist = sqrt(dx * dx + dy * dy)
+        if dist > 1.0 then
+            move_x = enemy_list[handle][ENEMY_X] + (dx / dist) * enemy_list[handle][ENEMY_SPEED] * 1.5  -- Faster when fleeing
+            move_y = enemy_list[handle][ENEMY_Y] + (dy / dist) * enemy_list[handle][ENEMY_SPEED] * 1.5
+            enemy_set_x(handle, move_x)
+            enemy_set_y(handle, move_y)
+        end if
+    end if
+    
+	grid_update_position(grid_handle, enemy_list[handle][ENEMY_X] , enemy_list[handle][ENEMY_Y] )
+    
+end procedure
+
+
+

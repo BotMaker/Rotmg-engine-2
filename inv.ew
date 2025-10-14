@@ -17,7 +17,7 @@ global sequence inv
 
   inv[5][1]=#A8D
   inv[5][1]=#B24
-  --inv[5][2]=real(equip_delta_mod(inv[5][1],equip_slotType))
+
 
   inv[6][1]=#910
   

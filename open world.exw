@@ -32,7 +32,7 @@ include projectile.ew
 
 global integer font0,font1,font2
 global integer spr_players
-constant lighting_switch = 1
+constant lighting_switch = 0
 
 
 puts(1,"loading xml data\n")
@@ -45,6 +45,7 @@ include "xmlall.ew"
 include "projectilexml.ew"
 
 include button.ew
+
 
 integer objectlist,hashlist,projectilelist
 objectlist=object_new()
@@ -87,7 +88,8 @@ end function
 
 
 include player.ew
-
+include grid.ew
+include enemy.ew
 
 procedure map_load()
   --wmap_load("map.wmap")
@@ -343,6 +345,10 @@ procedure init()
         ewShowCursor(1)
 		puts(1,"loading map\n")
 		map_load()
+		
+		
+		?enemy_new(1020, 1020, 100.0, 0.1, 5) 
+        ?enemy_new(1025, 1025, 100.0, 0.1, 5)
 end procedure
 
 
@@ -357,18 +363,21 @@ atom amplitude,frequency
 sequence list,object_list
 integer bullet_id,ctype
 atom x,y,start_time,angle,elapsed_time,vec,modvec,d,angle2
-
+integer ehandle
+atom dx,dy,dist2,ex,ey
 integer lifetime,speed
 
 --collision
 integer object_type
 
-sequence stats
+sequence stats,nearby ,enemy_dielist
+
+ 
 
 integer found_solid, stype,light
 atom a,b,c
 
-
+enemy_dielist={}
 
     list=projectile_get_list(projectilelist)
 
@@ -384,6 +393,8 @@ atom a,b,c
         bullet_id=list[j][projectile_bullet_id]
         ctype=list[j][projectile_type]
 		light=list[j][projectile_light]
+		
+		
 		
 
         angle2=angle
@@ -445,6 +456,56 @@ atom a,b,c
 		  
 		  light_set_x(light,x)
           light_set_y(light,y)
+		  
+		  nearby = grid_get_nearby(x, y, 1)
+		  if length(nearby) then
+		    --puts(1,"projectile near any enemy\n")
+			--?nearby
+			
+			
+			if length(nearby) then
+    for k = 1 to length(nearby) do
+	
+         if  sequence (nearby[k]) then
+         ehandle = nearby[k][1]
+		 else
+		   ehandle = nearby[k]
+		 end if
+
+        if length(enemy_list[ehandle]) > 0 then
+            ex = enemy_list[ehandle][ENEMY_X]
+            ey = enemy_list[ehandle][ENEMY_Y]
+
+            -- simple distance-based collision
+            dx = x - ex
+            dy = y - ey
+            dist2 = dx*dx + dy*dy
+
+            if dist2 < 0.5 then  -- 4 pixels radius (2^2 * 4)
+                -- Hit enemy
+                enemy_list[ehandle][ENEMY_HEALTH] -= 10  -- example damage
+				
+				if enemy_list[ehandle][ENEMY_HEALTH] <0 then
+				   enemy_dielist&=ehandle
+				end if
+				
+				
+
+                -- optional: mark projectile for deletion
+                light_delete(light)
+                projectile_free(projectilelist, j)
+            end if
+        end if
+    end for
+end if
+			
+			
+			
+			
+			
+			
+			
+		  end if
           
           if walkable[floor(y)][floor(x)]=0  then
 		    light_delete(light)
@@ -456,10 +517,14 @@ atom a,b,c
 
       end if	
 
-    
+      for h=1 to length(enemy_dielist) do
+        enemy_delete(enemy_dielist[h])
+      end for
 
     end for
 
+
+   
 
 end procedure
 
@@ -734,6 +799,51 @@ gl_color4f({1,1,1, 1})
 end procedure
 
 
+global atom player_health, max_health 
+player_health = 100.0 -- Example starting health
+max_health = 100.0 -- Maximum health
+
+ --Lerp function to interpolate between two values global 
+ function lerp(atom a, atom b, atom t) 
+   return a + (b - a) * t 
+ end function
+
+-- Function to get health percentage (0.0 to 1.0) global 
+function get_health_percent() 
+  return player_health / max_health 
+end function
+
+
+
+procedure draw_health()
+-- Add health bar rendering
+atom health_percent
+atom bar_width
+atom green 
+atom red 
+
+health_percent = get_health_percent()
+bar_width = 150 * health_percent
+green = lerp(0.0, 1.0, health_percent)  -- Green component (0 to 1)
+red = lerp(1.0, 0.0, health_percent)    -- Red component (1 to 0)
+
+draw_set_color(128, 128, 128)  -- Gray border
+draw_rectangle(615, 5, 775, 35, 0)  -- Border rectangle (slightly larger)
+
+
+draw_set_color(0, 0, 0)  -- Black background
+draw_rectangle(620, 10, 770, 30, 0)  -- Background rectangle (150 pixels wide)
+
+draw_set_color(floor(red * 255), floor(green * 255), 0)  -- Interpolated color
+draw_rectangle(620, 10, 620 + floor(bar_width), 30, 0)  -- Filled portion
+
+currentfont = font0
+draw_set_color(255, 255, 255)
+draw_text(620, 12, sprintf("Health: %.0f/%.0f", {player_health, max_health}))
+
+
+end procedure
+
 
 
 sequence input_string
@@ -757,7 +867,8 @@ constant TARGET_FRAME_MS = 8
 procedure draw()
 
 atom frametime,deltatime ,brightness,last_brightness
-integer index
+integer index,sprite
+atom ex,ey
 sequence color
 camera_x=player_x+2
 camera_y=player_y+1
@@ -853,6 +964,15 @@ gl_color4f({1, 1,1, 1})
 player_draw()
   --player_name_draw()
   projectile_update_new()  
+  
+  for i = 1 to length(enemy_list) do
+        if length(enemy_list[i]) then
+             ex = enemy_list[i][ENEMY_X]
+             ey = enemy_list[i][ENEMY_Y]
+             sprite = enemy_list[i][ENEMY_SPRITE]
+            draw_spritesheet_floor(ex, ey, 1, sprite,enemy_list[i][ ENEMY_FRAMEINDEX])  -- Adjust sprite index as needed
+        end if
+    end for
 
 
 
@@ -875,6 +995,8 @@ player_draw()
 
 
   gui_draw_inv_slots2()
+   draw_health()
+  
   
 
 
@@ -1100,7 +1222,21 @@ else
 
   if key_check(VK_HOME)  then
     camera_z-=1
+	
   end if
+  
+  if key_check(' ')  then
+	player_health-=2
+	
+	enemy_delete(1)
+	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
+	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
+	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
+	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
+	enemy_delete(3)
+  end if
+  
+  
   
   if key_check('Z')  then
 	zoom_scale+=1
@@ -1123,7 +1259,16 @@ else
   if input_onoff=0 then
     player_update()
   end if
+  
+  
+  -- Update all enemies
+    for i = 1 to length(enemy_list) do
+        if length(enemy_list[i]) then
+            enemy_update(i)
+        end if
+    end for
 
+   grid_debug_summary_full()
   euglTimerFunc(30,loop_id,0)
 end procedure
 loop_id = routine_id("loop")

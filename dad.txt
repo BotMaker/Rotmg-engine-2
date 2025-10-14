@@ -1,0 +1,10 @@
+--if length(class_list[handle][grid_emptylist])>0 then
+  --  grid_handle=class_list[handle][grid_emptylist][1]
+  --	class_list[handle][grid_emptylist] = class_list[handle][grid_emptylist][2..length(class_list[handle][grid_emptylist])]
+  --else
+  --  class_list[handle][grid_list] = append(class_list[handle][grid_list], {})
+  --	grid_handle=length(class_list[handle][grid_list])
+  --end if
+                                          ^
+
+

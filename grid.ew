@@ -1,0 +1,260 @@
+-- Grid configuration
+constant CHUNK_SIZE = 4  -- width/height of each chunk in pixels
+constant WORLD_WIDTH = 2048
+constant WORLD_HEIGHT = 2048
+constant CHUNK_COLS = 4
+constant CHUNK_ROWS = 4
+
+global integer grid_cols, grid_rows
+sequence empty,empty_freelist
+grid_cols = floor(WORLD_WIDTH / CHUNK_SIZE)
+grid_rows = floor(WORLD_HEIGHT / CHUNK_SIZE)
+
+
+empty={}
+empty_freelist={}
+for r=1 to grid_rows do
+  empty=append(empty,repeat({},grid_cols))
+  empty_freelist=append(empty_freelist,repeat({},grid_cols))
+end for
+
+
+-- Get chunk index from world coordinates
+global function get_chunk(atom x, atom y)
+    integer cx 
+    integer cy
+	
+	cx = floor(x / CHUNK_SIZE)
+	cy = floor(y / CHUNK_SIZE)
+
+    if cx < 1 then cx = 1 end if
+    if cy < 1 then cy = 1 end if
+    if cx > grid_cols then cx = grid_cols end if
+    if cy > grid_rows then cy = grid_rows end if
+
+    return {cx, cy}
+end function
+
+
+sequence class_list,class_freelist,grid_freelist
+class_list={}
+class_freelist={}
+grid_freelist={}
+
+
+constant grid_x = 1
+constant grid_y = 2
+constant grid_enemy_handle = 3
+constant grid_list = 4
+constant grid_emptylist = 5
+constant grid_cx=6
+constant grid_cy=7
+constant grid_empty_handle=8
+
+global procedure empty_delete(integer handle)
+  integer cx,cy,empty_handle
+  
+  if handle < 1 or handle > length(class_list) then 
+   puts(1,"empty_delete error\n")
+   return 
+  end if
+  
+  cx=class_list[handle][grid_cx ]
+  cy=class_list[handle][grid_cy ]
+  empty_handle=class_list[handle][grid_empty_handle]
+  
+  
+  empty[cy][cx][empty_handle]={}
+  
+  empty_freelist[cy][cx] = append(empty_freelist[cy][cx],empty_handle )
+  
+  class_list[handle]={}
+  class_freelist =append(class_freelist, handle)
+end procedure
+
+global function grid_new(atom x, atom y, integer enemy)
+  integer handle,cx,cy,empty_handle
+  sequence chunk
+  if length(class_freelist)>0 then
+    handle= class_freelist[1]
+    class_freelist = class_freelist[2..length(class_freelist)]
+  else
+    class_list= append(class_list,{})
+	--grid_freelist= append(grid_freelist,{})
+    handle=length(class_list)
+  end if
+
+  class_list[handle]={x,y,enemy,{},{},0,0,0}
+  
+  chunk = get_chunk(x, y)
+  cx = chunk[1]
+  cy = chunk[2]
+  
+  class_list[handle][grid_x]=x
+  class_list[handle][grid_y]=y
+  class_list[handle][grid_enemy_handle ]=enemy
+  class_list[handle][grid_cx ]=cx
+  class_list[handle][grid_cy ]=cy
+  
+  if length(empty_freelist[cy][cx])>0 then
+    empty_handle = empty_freelist[cy][cx][1]
+	empty_freelist[cy][cx] = empty_freelist[cy][cx][2..length(empty_freelist[cy][cx])]
+  else 
+   empty[cy][cx] = append(empty[cy][cx], {})
+   empty_handle = length( empty[cy][cx] )
+  end if
+  
+  class_list[handle][grid_empty_handle ]=empty_handle
+  empty[cy][cx][empty_handle]&=enemy
+  
+
+
+  return handle
+end function
+
+
+global procedure grid_update_position(integer handle, atom new_x, atom new_y)
+    integer old_cx, old_cy, new_cx, new_cy, empty_handle
+    sequence new_chunk
+
+    if length(class_list[handle]) = 0 then return end if
+
+    old_cx = class_list[handle][grid_cx]
+    old_cy = class_list[handle][grid_cy]
+    empty_handle = class_list[handle][grid_empty_handle]
+
+    new_chunk = get_chunk(new_x, new_y)
+    new_cx = new_chunk[1]
+    new_cy = new_chunk[2]
+
+    -- Update position
+    class_list[handle][grid_x] = new_x
+    class_list[handle][grid_y] = new_y
+
+    if new_cx != old_cx or new_cy != old_cy then
+        -- remove from old chunk
+        empty[old_cy][old_cx][empty_handle] = {}
+        empty_freelist[old_cy][old_cx] = append(empty_freelist[old_cy][old_cx], empty_handle)
+
+        -- add to new chunk
+        if length(empty_freelist[new_cy][new_cx]) > 0 then
+            empty_handle = empty_freelist[new_cy][new_cx][1]
+            empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..$]
+        else
+            empty[new_cy][new_cx] = append(empty[new_cy][new_cx], {})
+            empty_handle = length(empty[new_cy][new_cx])
+        end if
+
+        empty[new_cy][new_cx][empty_handle] = class_list[handle][grid_enemy_handle]
+        class_list[handle][grid_cx] = new_cx
+        class_list[handle][grid_cy] = new_cy
+        class_list[handle][grid_empty_handle] = empty_handle
+    end if
+end procedure
+
+global function grid_get_nearby(atom x, atom y, integer range)
+    sequence results
+    sequence chunk 
+    integer cx,cy,min_cx,max_cx,min_cy,max_cy
+	chunk = get_chunk(x, y)
+	cx = chunk[1]
+	cy = chunk[2]
+	
+	results={}
+    
+
+    min_cx = max(1, cx - range)
+    max_cx = min(grid_cols, cx + range)
+    min_cy = max(1, cy - range)
+    max_cy = min(grid_rows, cy + range)
+
+    for yy = min_cy to max_cy do
+    for xx = min_cx to max_cx do
+        for i = 1 to length(empty[yy][xx]) do
+            if not equal(empty[yy][xx][i], {}) then
+                results = append(results, empty[yy][xx][i])
+            end if
+        end for
+    end for
+  end for
+
+    return results
+end function
+
+
+global procedure grid_debug_summary_full()
+    integer total, active, used_cells, free_cells
+    total = length(class_list)
+    active = 0
+    used_cells = 0
+    free_cells = 0
+
+    for i = 1 to total do
+        if length(class_list[i]) > 0 then
+            active += 1
+        end if
+    end for
+
+    for y = 1 to grid_rows do
+        for x = 1 to grid_cols do
+            used_cells += length(empty[y][x])
+            free_cells += length(empty_freelist[y][x])
+        end for
+    end for
+
+    printf(1, "Grid Summary %d:\n",0)
+    printf(1, "  total handles: %d\n", total)
+    printf(1, "  active: %d\n", active)
+    printf(1, "  freed: %d\n", length(class_freelist))
+    printf(1, "  used grid slots: %d\n", used_cells)
+    printf(1, "  free grid slots: %d\n\n", free_cells)
+end procedure
+
+integer temp
+temp=grid_new(1024,1024,1)
+
+grid_update_position(temp, 1024, 1024)
+grid_update_position(temp, 124, 1024)
+grid_update_position(temp, 1024, 124)
+grid_update_position(temp, 24, 24)
+
+global function grid_get_list(integer handle)
+  return class_list[handle]
+end function
+
+global function grid_get_free_size(integer handle)
+  return length(grid_freelist[handle])
+end function
+
+
+global function grid_get_freelist(integer handle)
+  return grid_freelist[handle]
+end function
+
+
+global function grid_get_x(integer handle)
+  return class_list[handle][grid_x]
+end function
+
+global function grid_get_y(integer handle)
+  return class_list[handle][grid_y]
+end function
+
+global function grid_get_totalnumber()
+  return length(class_list)
+end function
+
+global procedure grid_set_x(integer handle, integer x)
+  class_list[handle][grid_x]=x
+end procedure
+
+global procedure grid_set_y(integer handle, integer y)
+  class_list[handle][grid_y]=y
+end procedure
+
+
+global procedure grid_delete(integer handle)
+  class_list[handle]={}
+  grid_freelist[handle]={}
+  class_freelist =append(class_freelist, handle)
+end procedure

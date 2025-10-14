@@ -149,6 +149,10 @@ echo input_stream.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s input_stream.c
 echo player.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s player.c
+echo grid.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s grid.c
+echo enemy.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s enemy.c
 echo init-.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s init-.c
 echo init-0.c
@@ -235,6 +239,8 @@ del wmap.c
 del zlib.c
 del input_stream.c
 del player.c
+del grid.c
+del enemy.c
 del init-0.c
 goto done
 :nofiles

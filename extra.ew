@@ -7,6 +7,14 @@ global function is_even(integer test_integer)
 
 end function
 
+global function min(atom a, atom b)
+    if a < b then
+        return a
+    else
+        return b
+    end if
+end function
+
 
 global function max3(atom a, atom b, atom c)
     atom m

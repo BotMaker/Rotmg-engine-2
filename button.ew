@@ -74,6 +74,10 @@ procedure try_swap_slots(integer a, integer b)
     if a = b or a <= 0 or b <= 0 then
         return
     end if
+	
+	if a > length(inv) or b > length(inv) then
+      return
+    end if
 
     typeA = inv[a][2]
     typeB = inv[b][2]
@@ -181,7 +185,7 @@ global procedure button_mouse_released(integer mx, integer my)
             -- Remove the item from the inventory
             inv[selected][1] = -1
             class_list[selected][button_index] = -1
-			--selected = 0
+			selected = 0
         end if
     end if
 
