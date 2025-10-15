@@ -28,19 +28,26 @@ global function projectile_new()
   return handle
 end function
 
-global function projectile_enter(integer handle,atom x, atom y, atom angle, atom start_time, integer  bullet_id, integer ctype, integer light)
-integer index
-  if length(projectile_freelist[handle])>0 then
-    index=projectile_freelist[handle][1]
-	projectile_freelist[handle] = projectile_freelist[handle][2..length(projectile_freelist[handle])]
-	class_list[handle][index]={x,y,angle,start_time,bullet_id,ctype,light}
-	return index
-  else
-    class_list[handle]=append(class_list[handle],{x,y,angle,start_time,bullet_id,ctype,light})
-	return length(class_list[handle])
-  end if
 
-  
+global function projectile_enter(
+    integer handle,
+    atom x, atom y,
+    atom angle, atom start_time,
+    integer bullet_id, integer ctype, integer light)
+
+    integer index
+
+    -- Reuse a freed slot if available
+    if length(projectile_freelist[handle]) > 0 then
+        index = projectile_freelist[handle][1]
+        projectile_freelist[handle] = projectile_freelist[handle][2..$]
+        class_list[handle][index] = {x, y, angle, start_time, bullet_id, ctype, light}
+        return index
+    else
+        -- Otherwise append a new projectile
+        class_list[handle] = append(class_list[handle], {x, y, angle, start_time, bullet_id, ctype, light})
+        return length(class_list[handle])
+    end if
 end function
 
 global function projectile_get_list(integer handle)
@@ -61,9 +68,23 @@ global procedure projectile_set_position(integer handle,integer index, atom x, a
 end procedure
 
 
+--global procedure projectile_free(integer handle, integer index)
+--  class_list[handle][index]={}
+--  class_freelist =append(class_freelist, index)
+  --projectile_freelist[handle]&=index
+--end procedure
+
+integer freecount
+freecount=0
+
 global procedure projectile_free(integer handle, integer index)
-  class_list[handle][index]={}
-  projectile_freelist[handle]&=index
+--puts(1,"free count :"&sprint(freecount)&"\n")
+--freecount+=1
+    -- Mark projectile slot as free
+    class_list[handle][index] = {}
+    
+    -- Add back to the projectile freelist for this class
+    projectile_freelist[handle] = append(projectile_freelist[handle], index)
 end procedure
 
 

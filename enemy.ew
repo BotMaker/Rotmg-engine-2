@@ -1,22 +1,10 @@
 include projectile_enemy.ew
 
--- Enemy constants
-global constant ENEMY_X = 1
-global constant ENEMY_Y = 2
-global constant ENEMY_HEALTH = 3
-global constant ENEMY_SPEED = 4
-global constant ENEMY_STATE = 5
-global constant ENEMY_TARGET_X = 6
-global constant ENEMY_TARGET_Y = 7
-global constant ENEMY_SPRITE = 8
-global constant ENEMY_FRAMEINDEX = 9
-global constant ENEMY_GRID_HANDLE = 10
-global constant ENEMY_NEXT_SHOT = 11          -- new: next time enemy can shoot
-global constant ENEMY_SHOOT_INTERVAL = 12     -- new: ms between shots
-global constant ENEMY_SHOOT_RANGE = 13        -- new: shooting distance
+
 
 -- Global data
-global sequence enemy_list, class_freelist, enemy_freelist
+--global sequence enemy_list
+sequence class_freelist, enemy_freelist
 global integer projectile_enemy_list
 enemy_list = {}
 class_freelist = {}
@@ -235,7 +223,7 @@ global procedure enemy_update(integer handle)
         -- 🔫 Shooting check
         if dist <= enemy_list[handle][ENEMY_SHOOT_RANGE] then
             if now >= enemy_list[handle][ENEMY_NEXT_SHOT] then
-                enemy_shoot(handle)
+                --enemy_shoot(handle)
                 enemy_list[handle][ENEMY_NEXT_SHOT] = now + enemy_list[handle][ENEMY_SHOOT_INTERVAL]
             end if
         end if

@@ -86,8 +86,22 @@ atom speed_mut
     
 end function
 
+-- Enemy constants
+global constant ENEMY_X = 1
+global constant ENEMY_Y = 2
+global constant ENEMY_HEALTH = 3
+global constant ENEMY_SPEED = 4
+global constant ENEMY_STATE = 5
+global constant ENEMY_TARGET_X = 6
+global constant ENEMY_TARGET_Y = 7
+global constant ENEMY_SPRITE = 8
+global constant ENEMY_FRAMEINDEX = 9
+global constant ENEMY_GRID_HANDLE = 10
+global constant ENEMY_NEXT_SHOT = 11          -- new: next time enemy can shoot
+global constant ENEMY_SHOOT_INTERVAL = 12     -- new: ms between shots
+global constant ENEMY_SHOOT_RANGE = 13        -- new: shooting distance
 
-
+global sequence enemy_list
 include player.ew
 include grid.ew
 include enemy.ew
@@ -480,8 +494,20 @@ enemy_dielist={}
 end procedure
 
 
+procedure check_dup(sequence list)
+  for i=1 to length(list) do
+    for j=1 to length(list) do
+      if i!=j then
+        if list[i][1]=list[j][1] then
+		  puts(1,"dup found\n")
+		end if
+      end if  
+	end for
+  end for
+end procedure
 
-
+integer hitcount
+hitcount=0
 
 
 procedure projectile_update_new()
@@ -510,7 +536,7 @@ enemy_dielist={}
 
     list=projectile_get_list(projectilelist)
 
-    object_list=object_get_list( objectlist )
+    --object_list=object_get_list( objectlist )
 
     for j=1 to length(list) do
 
@@ -522,8 +548,6 @@ enemy_dielist={}
         bullet_id=list[j][projectile_bullet_id]
         ctype=list[j][projectile_type]
 		light=list[j][projectile_light]
-		
-		
 		
 
         angle2=angle
@@ -586,12 +610,15 @@ enemy_dielist={}
 		  light_set_x(light,x)
           light_set_y(light,y)
 		  
-		  nearby = grid_get_nearby(x, y, 1)
-			
+		  nearby = grid_get_nearby(x, y, 16)
+		  
 	      if length(nearby) then
+		    --check_dup(nearby)
+		    --?nearby
+            --usleep(100)		  
             for k = 1 to length(nearby) do
               ehandle = nearby[k][1]
-              if length(enemy_list[ehandle]) > 0 then
+              --if length(enemy_list[ehandle]) > 0 then
                 ex = enemy_list[ehandle][ENEMY_X]
                 ey = enemy_list[ehandle][ENEMY_Y]
 
@@ -601,25 +628,29 @@ enemy_dielist={}
                 dist2 = dx*dx + dy*dy
 
                 if dist2 < 1 then  
+				  --puts(1,"projectile hit enemy  "&sprint( hitcount)&"\n")
+				   hitcount+=1
                   -- Hit enemy
                   enemy_list[ehandle][ENEMY_HEALTH] -= 10  -- example damage
 				
 				  if enemy_list[ehandle][ENEMY_HEALTH] <0 then
+				     
 				     enemy_dielist&=ehandle
 				  end if
 
                 -- optional: mark projectile for deletion
                 light_delete(light)
                 projectile_free(projectilelist, j)
+				exit
                end if
-             end if
+             --end if
            end for
          end if	
           
           if walkable[floor(y)][floor(x)]=0  then
 		    light_delete(light)
             projectile_free(projectilelist,j)
-  
+            
           end if
 
       	end if
@@ -1066,16 +1097,39 @@ glu_lookAt({camera_x, camera_y, camera_z},
 			  --?enemy_y
 			  
 			 --?pos
-			 d3d_set_projection_ortho(0,0,800,600,0)
-             d3d_set_hidden(0)
+			 --d3d_set_projection_ortho(0,0,800,600,0)
+             --d3d_set_hidden(0)
 			 --usleep(100)
 			 d3d:draw_line(  xx,  yy ,  pos[1], pos[2])
+			 
+			 for h=1 to length(enemy_list) do
+			 
+			 if length(enemy_list[h]) > 0 then
+			 			 gl_matrixMode(GL_PROJECTION)
+gl_loadIdentity()
+glu_perspective(45, 800.0/600, 1, 32000)
 
+gl_matrixMode(GL_MODELVIEW)
+gl_loadIdentity()
+glu_lookAt({camera_x, camera_y, camera_z},
+           {camera_x + cos(camera_yaw*PI/180),
+            camera_y + sin(camera_yaw*PI/180),
+            0},
+           {0, 0, 1})
+			 
+			   pos = glu_project(enemy_list[h][ENEMY_X], enemy_list[h][ENEMY_Y], 1)
+			   pos[2]+=64
+ 			 d3d_set_projection_ortho(0,0,800,600,0)
+             d3d_set_hidden(0)
+ 
+			   d3d:draw_line(  pos[1],  pos[2] ,  pos[1]+10, pos[2]+10)
+			 end if
+             end for
 			 --exit
 			end if
 		end for
 	end if
-	pos=world_to_screen3(camera_x, camera_y)
+	
 	--draw_text( 100,180, "camera postion  "&sprint(camera_x)&"    "&sprint(camera_y) )
 	--draw_text( 100,200, "camera postion world" &sprint(pos[1])&"    "&sprint(pos[2]) )
 end procedure
@@ -1211,12 +1265,13 @@ gl_color4f({1, 1,1, 1})
    if current_time()>debug_time then
      grid_debug_summary_full()
 	 enemy_debug_count()
-	 debug_time=current_time()+100
+	 debug_time=current_time()+1000
+	 grid_validate()
    end if
 
    grid_debug_summary_draw()
    enemy_debug_draw()
-   draw_dist()
+   --draw_dist()
 
   currentfont=font0
   draw_set_color(255,0,0)
@@ -1459,6 +1514,8 @@ else
             enemy_update(i)
         end if
     end for  
+	
+	--grid_check_chunk_integrity()
 
   euglTimerFunc(30,loop_id,0)
 end procedure

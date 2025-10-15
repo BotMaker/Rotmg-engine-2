@@ -1,30 +1,33 @@
--- Grid configuration
-constant CHUNK_SIZE = 4  -- width/height of each chunk in pixels
-constant WORLD_WIDTH = 2048
+-- ============================================================
+--  Fixed Grid System (Euphoria 3.1.1 compatible)
+-- ============================================================
+
+constant CHUNK_SIZE   = 4
+constant WORLD_WIDTH  = 2048
 constant WORLD_HEIGHT = 2048
 
-
 global integer grid_cols, grid_rows
-global sequence empty,empty_freelist
+global sequence empty, empty_freelist
 grid_cols = floor(WORLD_WIDTH / CHUNK_SIZE)
 grid_rows = floor(WORLD_HEIGHT / CHUNK_SIZE)
 
+empty = {}
+empty_freelist = {}
 
-empty={}
-empty_freelist={}
-for r=1 to grid_rows do
-  empty=append(empty,repeat({},grid_cols))
-  empty_freelist=append(empty_freelist,repeat({},grid_cols))
+for r = 1 to grid_rows do
+    empty = append(empty, repeat({}, grid_cols))
+    empty_freelist = append(empty_freelist, repeat({}, grid_cols))
 end for
 
 
--- Get chunk index from world coordinates
+------------------------------------------------------------
+-- Get chunk from world coordinates
+------------------------------------------------------------
 global function get_chunk(atom x, atom y)
-    integer cx 
-    integer cy
-	
-	cx = floor(x / CHUNK_SIZE)
-	cy = floor(y / CHUNK_SIZE)
+    integer cx, cy
+
+    cx = floor(x / CHUNK_SIZE)
+    cy = floor(y / CHUNK_SIZE)
 
     if cx < 1 then cx = 1 end if
     if cy < 1 then cy = 1 end if
@@ -35,136 +38,268 @@ global function get_chunk(atom x, atom y)
 end function
 
 
-sequence class_list,class_freelist,grid_freelist
-class_list={}
-class_freelist={}
-grid_freelist={}
-
+------------------------------------------------------------
+-- Globals
+------------------------------------------------------------
+sequence class_list, class_freelist
+class_list = {}
+class_freelist = {}
 
 constant grid_x = 1
 constant grid_y = 2
 constant grid_enemy_handle = 3
 constant grid_list = 4
 constant grid_emptylist = 5
-constant grid_cx=6
-constant grid_cy=7
-constant grid_empty_handle=8
+constant grid_cx = 6
+constant grid_cy = 7
+constant grid_empty_handle = 8
 
-global procedure empty_delete(integer handle)
-  integer cx,cy,empty_handle
-  
-  if handle < 1 or handle > length(class_list) then 
-   puts(1,"empty_delete error\n")
-   return 
-  end if
-  
-  cx=class_list[handle][grid_cx ]
-  cy=class_list[handle][grid_cy ]
-  empty_handle=class_list[handle][grid_empty_handle]
-  
-  
-  empty[cy][cx][empty_handle]={}
-  
-  empty_freelist[cy][cx] = append(empty_freelist[cy][cx],empty_handle )
-  
-  class_list[handle]={}
-  class_freelist =append(class_freelist, handle)
+
+global procedure grid_remove_enemy(integer enemy)
+    for y = 1 to grid_rows do
+        for x = 1 to grid_cols do
+            for i = 1 to length(empty[y][x]) do
+                if length(empty[y][x][i]) > 0 then
+                    for j = 1 to length(empty[y][x][i]) do
+                        if empty[y][x][i][j] = enemy then
+                            empty[y][x][i] = {}
+                        end if
+                    end for
+                end if
+            end for
+        end for
+    end for
 end procedure
 
+
+------------------------------------------------------------
+-- Delete an enemy entry
+------------------------------------------------------------
+global procedure empty_delete(integer handle)
+    integer cx, cy, empty_handle, enemy_id
+
+    if handle < 1 or handle > length(class_list) then
+        puts(1, "empty_delete: invalid handle\n")
+        return
+    end if
+    if length(class_list[handle]) = 0 then
+	    puts(1, "empty_delete: invalid handle\n")
+        return
+    end if
+
+    enemy_id = class_list[handle][grid_enemy_handle]
+
+    -- NEW FIX: remove any existing references
+    grid_remove_enemy(enemy_id)
+
+    cx = class_list[handle][grid_cx]
+    cy = class_list[handle][grid_cy]
+    empty_handle = class_list[handle][grid_empty_handle]
+
+    if cy >= 1 and cy <= grid_rows and cx >= 1 and cx <= grid_cols then
+        if empty_handle > 0 and empty_handle <= length(empty[cy][cx]) then
+            empty[cy][cx][empty_handle] = {}
+            empty_freelist[cy][cx] = append(empty_freelist[cy][cx], empty_handle)
+        end if
+    end if
+
+    class_list[handle] = {}
+    class_freelist = append(class_freelist, handle)
+end procedure
+
+global procedure grid_validate()
+    integer  enemy
+    for y = 1 to grid_rows do
+        for x = 1 to grid_cols do
+            for i = 1 to length(empty[y][x]) do
+                if length(empty[y][x][i]) > 0 then
+                    enemy = empty[y][x][i][1]
+                    if enemy > length(class_list) or length(class_list[enemy]) = 0 then
+                        puts(1, sprintf("Ghost entry removed at chunk (%d,%d)\n", {x, y}))
+                        empty[y][x][i] = {}
+                    end if
+                end if
+            end for
+        end for
+    end for
+end procedure
+
+------------------------------------------------------------
+-- 🧩 grid_check_chunk_integrity()
+-- Loops through every 512x512 area (debug check)
+-- and verifies enemies are actually inside that area.
+------------------------------------------------------------
+------------------------------------------------------------
+-- 🧩 grid_check_chunk_integrity()
+-- Checks that each enemy in the grid is inside its real chunk.
+-- Compatible with Euphoria 3.1.1 (no inline declarations).
+------------------------------------------------------------
+global procedure grid_check_chunk_integrity()
+    integer chunk_size
+    atom minx, maxx, miny, maxy
+    integer err_count
+    atom ex, ey
+    integer enemy
+
+    -- use the actual chunk size used by the grid system
+    chunk_size = CHUNK_SIZE
+    err_count = 0
+
+    for cy = 1 to grid_rows do
+        for cx = 1 to grid_cols do
+            if length(empty[cy][cx]) then
+
+                --  fixed 1-based chunk coordinate math
+                minx = cx * chunk_size
+                maxx = (cx + 1) * chunk_size
+                miny = cy * chunk_size
+                maxy = (cy + 1) * chunk_size
+
+                for i = 1 to length(empty[cy][cx]) do
+                    if sequence(empty[cy][cx][i]) and length(empty[cy][cx][i]) > 0 then
+                        enemy = empty[cy][cx][i][1]
+
+                        if enemy >= 1 and enemy <= length(enemy_list) then
+                            if length(enemy_list[enemy]) then
+                                ex = enemy_list[enemy][ENEMY_X]
+                                ey = enemy_list[enemy][ENEMY_Y]
+
+                                if ex < minx or ex >= maxx or ey < miny or ey >= maxy then
+                                    printf(1,
+                                        "Enemy %d is OUT OF CHUNK (%d,%d) at (%.1f,%.1f)\n",
+                                        {enemy, cx, cy, ex, ey})
+                                    err_count += 1
+                                end if
+                            end if
+                        else
+                            printf(1, "Invalid enemy handle %d in chunk (%d,%d)\n", {enemy, cx, cy})
+                            err_count += 1
+                        end if
+                    end if
+                end for
+
+            end if
+        end for
+    end for
+
+    if err_count = 0 then
+        puts(1, "All enemies correctly placed in their chunks.\n")
+    else
+        printf(1, "Total misplaced enemies: %d\n", {err_count})
+    end if
+end procedure
+
+
+
+
+------------------------------------------------------------
+-- Create new grid entry
+------------------------------------------------------------
 global function grid_new(atom x, atom y, integer enemy)
-  integer handle,cx,cy,empty_handle
-  sequence chunk
-  if length(class_freelist)>0 then
-    handle= class_freelist[1]
-    class_freelist = class_freelist[2..length(class_freelist)]
-  else
-    class_list= append(class_list,{})
-	--grid_freelist= append(grid_freelist,{})
-    handle=length(class_list)
-  end if
+    integer handle, cx, cy, empty_handle
+    sequence chunk
 
-  class_list[handle]={x,y,enemy,{},{},0,0,0}
-  
-  chunk = get_chunk(x, y)
-  cx = chunk[1]
-  cy = chunk[2]
-  
-  class_list[handle][grid_x]=x
-  class_list[handle][grid_y]=y
-  class_list[handle][grid_enemy_handle ]=enemy
-  class_list[handle][grid_cx ]=cx
-  class_list[handle][grid_cy ]=cy
-  
-  if length(empty_freelist[cy][cx])>0 then
-    empty_handle = empty_freelist[cy][cx][1]
-	empty_freelist[cy][cx] = empty_freelist[cy][cx][2..length(empty_freelist[cy][cx])]
-  else 
-   empty[cy][cx] = append(empty[cy][cx], {})
-   empty_handle = length( empty[cy][cx] )
-  end if
-  
-  class_list[handle][grid_empty_handle ]=empty_handle
-  --empty[cy][cx][empty_handle]&=enemy
-  
-  empty[cy][cx][empty_handle] = append(empty[cy][cx][empty_handle], enemy)
-  
+    if length(class_freelist) > 0 then
+        handle = class_freelist[1]
+        class_freelist = class_freelist[2..length(class_freelist)]
+    else
+        class_list = append(class_list, {})
+        handle = length(class_list)
+    end if
 
+    class_list[handle] = {x, y, enemy, {}, {}, 0, 0, 0}
 
-  return handle
+    chunk = get_chunk(x, y)
+    cx = chunk[1]
+    cy = chunk[2]
+
+    class_list[handle][grid_cx] = cx
+    class_list[handle][grid_cy] = cy
+
+    if length(empty_freelist[cy][cx]) > 0 then
+        empty_handle = empty_freelist[cy][cx][1]
+        empty_freelist[cy][cx] = empty_freelist[cy][cx][2..length(empty_freelist[cy][cx])]
+    else
+        empty[cy][cx] = append(empty[cy][cx], {})
+        empty_handle = length(empty[cy][cx])
+    end if
+
+    class_list[handle][grid_empty_handle] = empty_handle
+    empty[cy][cx][empty_handle] = {enemy}
+
+    return handle
 end function
 
 
+------------------------------------------------------------
+-- Update grid position
+------------------------------------------------------------
 global procedure grid_update_position(integer handle, atom new_x, atom new_y)
-    integer old_cx, old_cy, new_cx, new_cy, empty_handle
+    integer old_cx, old_cy, new_cx, new_cy, old_empty_handle, new_empty_handle
     sequence new_chunk
 
+    if handle < 1 or handle > length(class_list) then return end if
     if length(class_list[handle]) = 0 then return end if
 
     old_cx = class_list[handle][grid_cx]
     old_cy = class_list[handle][grid_cy]
-    empty_handle = class_list[handle][grid_empty_handle]
+    old_empty_handle = class_list[handle][grid_empty_handle]
 
     new_chunk = get_chunk(new_x, new_y)
     new_cx = new_chunk[1]
     new_cy = new_chunk[2]
 
-    -- Update position
+    -- update position in class
     class_list[handle][grid_x] = new_x
     class_list[handle][grid_y] = new_y
 
+    -- only if chunk changed
     if new_cx != old_cx or new_cy != old_cy then
-        -- remove from old chunk
-        empty[old_cy][old_cx][empty_handle] = {}
-        empty_freelist[old_cy][old_cx] = append(empty_freelist[old_cy][old_cx], empty_handle)
 
-        -- add to new chunk
-        if length(empty_freelist[new_cy][new_cx]) > 0 then
-            empty_handle = empty_freelist[new_cy][new_cx][1]
-            --empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..$]
-			empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..length(empty_freelist[new_cy][new_cx])]
-        else
-            empty[new_cy][new_cx] = append(empty[new_cy][new_cx], {})
-            empty_handle = length(empty[new_cy][new_cx])
+        ------------------------------------------------------------
+        -- 1️⃣ Remove from old chunk properly
+        ------------------------------------------------------------
+        if old_cx >= 1 and old_cx <= grid_cols and old_cy >= 1 and old_cy <= grid_rows then
+            if old_empty_handle > 0 and old_empty_handle <= length(empty[old_cy][old_cx]) then
+                empty[old_cy][old_cx][old_empty_handle] = {}
+                empty_freelist[old_cy][old_cx] = append(empty_freelist[old_cy][old_cx], old_empty_handle)
+            end if
         end if
 
-        --empty[new_cy][new_cx][empty_handle] = class_list[handle][grid_enemy_handle]
-		empty[new_cy][new_cx][empty_handle] = {class_list[handle][grid_enemy_handle]}
+        ------------------------------------------------------------
+        -- 2️⃣ Add to new chunk
+        ------------------------------------------------------------
+        if length(empty_freelist[new_cy][new_cx]) > 0 then
+            new_empty_handle = empty_freelist[new_cy][new_cx][1]
+            empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..length(empty_freelist[new_cy][new_cx])]
+        else
+            empty[new_cy][new_cx] = append(empty[new_cy][new_cx], {})
+            new_empty_handle = length(empty[new_cy][new_cx])
+        end if
+
+        empty[new_cy][new_cx][new_empty_handle] = { class_list[handle][grid_enemy_handle] }
+
+        ------------------------------------------------------------
+        -- 3️⃣ Update class record
+        ------------------------------------------------------------
         class_list[handle][grid_cx] = new_cx
         class_list[handle][grid_cy] = new_cy
-        class_list[handle][grid_empty_handle] = empty_handle
+        class_list[handle][grid_empty_handle] = new_empty_handle
     end if
 end procedure
 
+
+------------------------------------------------------------
+-- Get nearby enemies
+------------------------------------------------------------
 global function grid_get_nearby(atom x, atom y, integer range)
-    sequence results
-    sequence chunk 
-    integer cx,cy,min_cx,max_cx,min_cy,max_cy
-	chunk = get_chunk(x, y)
-	cx = chunk[1]
-	cy = chunk[2]
-	
-	results={}
-    
+    sequence results, chunk
+    integer cx, cy, min_cx, max_cx, min_cy, max_cy
+
+    chunk = get_chunk(x, y)
+    cx = chunk[1]
+    cy = chunk[2]
+    results = {}
 
     min_cx = max(1, cx - range)
     max_cx = min(grid_cols, cx + range)
@@ -172,20 +307,22 @@ global function grid_get_nearby(atom x, atom y, integer range)
     max_cy = min(grid_rows, cy + range)
 
     for yy = min_cy to max_cy do
-    for xx = min_cx to max_cx do
-        for i = 1 to length(empty[yy][xx]) do
-           --if not equal(empty[yy][xx][i], {}) then
-		   if length(empty[yy][xx][i]) then
-                results = append(results, empty[yy][xx][i])
-            end if
+        for xx = min_cx to max_cx do
+            for i = 1 to length(empty[yy][xx]) do
+                if sequence(empty[yy][xx][i]) and length(empty[yy][xx][i]) > 0 then
+                    results = append(results, empty[yy][xx][i])
+                end if
+            end for
         end for
     end for
-  end for
 
     return results
 end function
 
 
+------------------------------------------------------------
+-- Debug summary
+------------------------------------------------------------
 integer total, active, used_cells, free_cells
 total = 0
 active = 0
@@ -210,18 +347,13 @@ global procedure grid_debug_summary_full()
             free_cells += length(empty_freelist[y][x])
         end for
     end for
-
-
 end procedure
 
 global procedure grid_debug_summary_draw()
-
-    draw_text(0,0,"Grid Summary")
-    draw_text(0,20,"total handles: "&sprint(total))
-    draw_text(0,40,"active: "&sprint(active))
-	draw_text(0,60,"freed: "&sprint(length(class_freelist)))
-	draw_text(0,80,"grid slots:: "&sprint(used_cells))
-	draw_text(0,100,"free grid slots: "&sprint(free_cells))
+    draw_text(0, 0, "Grid Summary")
+    draw_text(0, 20, "total handles: " & sprint(total))
+    draw_text(0, 40, "active: " & sprint(active))
+    draw_text(0, 60, "freed: " & sprint(length(class_freelist)))
+    draw_text(0, 80, "grid slots: " & sprint(used_cells))
+    draw_text(0, 100, "free grid slots: " & sprint(free_cells))
 end procedure
-
-

@@ -1,6 +1,6 @@
-C:\Users\garet\Desktop\Rotmg-game-engine-master\ROTMG (engine) alpha\grid.ew:205
-printf takes 3 arguments
-    printf(1, "Grid Summary:\n")
-                               ^
+C:\Users\garet\Desktop\Rotmg-game-engine-master\ROTMG (engine) alpha\grid.ew:32
+chunk_size has not been declared
+minx = cx * chunk_size
+                     ^
 
 
