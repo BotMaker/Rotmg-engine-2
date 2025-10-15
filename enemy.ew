@@ -65,7 +65,7 @@ global function enemy_new(atom x, atom y, atom health, atom speed, integer sprit
         grid_new(x, y, handle), -- ENEMY_GRID_HANDLE
         current_time() + 1000,  -- ENEMY_NEXT_SHOT
         1500,                   -- ENEMY_SHOOT_INTERVAL (1.5 sec)
-        12,                  -- ENEMY_SHOOT_RANGE
+        8,                  -- ENEMY_SHOOT_RANGE
         x,                      -- ENEMY_START_X
         y                       -- ENEMY_START_Y
     }
@@ -217,6 +217,18 @@ global procedure enemy_update(integer handle)
             enemy_list[handle][ENEMY_TARGET_X] = startx
             enemy_list[handle][ENEMY_TARGET_Y] = starty
         end if
+		
+		dx = enemy_list[handle][ENEMY_X] - player_x
+        dy = enemy_list[handle][ENEMY_Y] - player_y
+        dist = sqrt(dx * dx + dy * dy)
+		
+		-- 🔫 Shooting check
+        if dist <= enemy_list[handle][ENEMY_SHOOT_RANGE] then
+            if now >= enemy_list[handle][ENEMY_NEXT_SHOT] then
+                enemy_shoot(handle)
+                enemy_list[handle][ENEMY_NEXT_SHOT] = now + enemy_list[handle][ENEMY_SHOOT_INTERVAL]
+            end if
+        end if
 
         -- Move toward target
         dx = enemy_list[handle][ENEMY_TARGET_X] - enemy_list[handle][ENEMY_X]
@@ -227,14 +239,6 @@ global procedure enemy_update(integer handle)
             move_y = enemy_list[handle][ENEMY_Y] + (dy / dist) * enemy_list[handle][ENEMY_SPEED]
             enemy_set_x(handle, move_x)
             enemy_set_y(handle, move_y)
-        end if
-		
-		-- 🔫 Shooting check
-        if dist <= enemy_list[handle][ENEMY_SHOOT_RANGE] then
-            if now >= enemy_list[handle][ENEMY_NEXT_SHOT] then
-                enemy_shoot(handle)
-                enemy_list[handle][ENEMY_NEXT_SHOT] = now + enemy_list[handle][ENEMY_SHOOT_INTERVAL]
-            end if
         end if
 
     elsif state = 1 then  -- Chase

@@ -1,0 +1,12 @@
+add 8 more inventory slots to button class make them invisible 
+add loot bag
+only when a the player is over a loot bag do you make the 8 more inventory slots invisible and usable
+get enemy to drop loot bags after death loot drops
+equipment that can shoot bullet that can hit multiple targets by going through the enemy's instead of using the exit button when projectile hits a enemy make sure not delete the projectile if it multiple targets
+could add a arrow to point in the direction of the nearest enemy to the player
+
+need to create another grid this time for the enemy because I intend to spawn them all at the start of a map 
+use a grid so I call nearby on it to get a list of enemy near the player save having to iteration the whole list of enemy
+active ones nearby to the player and deactivate was that are active once there out of range of the player
+need to able to updated the enemy position in the grid just use a copy of grid.ew and rename it and name variables
+piercing MultiHit 

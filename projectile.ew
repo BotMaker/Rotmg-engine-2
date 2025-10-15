@@ -11,6 +11,44 @@ global constant projectile_bullet_id = 5
 global constant projectile_type = 6
 global constant projectile_light = 7
 
+ integer total_classes, total_projectiles, total_free
+ 
+ total_classes = length(class_list)
+    total_projectiles = 0
+    total_free = 0
+
+global procedure projectile_debug()
+    integer active
+    total_classes = length(class_list)
+    total_projectiles = 0
+    total_free = 0
+
+    for i = 1 to total_classes do
+        if length(class_list[i]) > 0 then
+            active = 0
+            for j = 1 to length(class_list[i]) do
+                if length(class_list[i][j]) > 0 then
+                    active += 1
+                end if
+            end for
+
+
+            total_projectiles += active
+            total_free += length(projectile_freelist[i])
+        end if
+    end for
+
+    
+
+end procedure
+
+global procedure projectile_debug_draw()
+    draw_text(0,240,"projectile_debug ")
+	draw_text(0,260,"TOTAL classes: "&sprint(total_classes))
+	draw_text(0,280,"Active projectiles: "&sprint(total_projectiles))
+	draw_text(0,300,"Free slots:  "&sprint(total_free))
+end procedure
+
 global function projectile_new()
   integer handle
   if length(class_freelist)>0 then
