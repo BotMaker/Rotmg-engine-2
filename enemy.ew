@@ -43,9 +43,6 @@ global procedure enemy_debug_draw()
 
 end procedure
 
------------------------------------------------------
--- Enemy Creation
------------------------------------------------------
 global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite)
     integer handle
     if length(enemy_freelist) > 0 then
@@ -65,14 +62,17 @@ global function enemy_new(atom x, atom y, atom health, atom speed, integer sprit
         0, 0,                   -- ENEMY_TARGET_X, ENEMY_TARGET_Y
         sprite,                 -- ENEMY_SPRITE
         rand(220),              -- ENEMY_FRAMEINDEX
-        grid_new(x,y,handle),   -- ENEMY_GRID_HANDLE
+        grid_new(x, y, handle), -- ENEMY_GRID_HANDLE
         current_time() + 1000,  -- ENEMY_NEXT_SHOT
         1500,                   -- ENEMY_SHOOT_INTERVAL (1.5 sec)
-        300.0                   -- ENEMY_SHOOT_RANGE (distance to shoot)
+        12,                  -- ENEMY_SHOOT_RANGE
+        x,                      -- ENEMY_START_X
+        y                       -- ENEMY_START_Y
     }
 
     return handle
 end function
+
 
 
 
@@ -157,14 +157,16 @@ end procedure
 -- Enemy Update Logic
 -----------------------------------------------------
 constant WANDER_RADIUS = 50.0
+constant WANDER_LIMIT  = 100.0  -- max distance from start position
 constant CHASE_RANGE   = 10.0
 constant FLEE_RANGE    = 50.0
-constant FLEE_THRESHOLD = 30.0
+constant FLEE_THRESHOLD = 50.0
 
 global procedure enemy_update(integer handle)
     atom dx, dy, dist, angle, move_x, move_y, now
     integer state, grid_handle
     atom health_percent
+    atom startx, starty
 
     if not length(enemy_list[handle]) then
         return
@@ -175,14 +177,21 @@ global procedure enemy_update(integer handle)
     grid_handle = enemy_list[handle][ENEMY_GRID_HANDLE]
     now = current_time()
 
+    startx = enemy_list[handle][ENEMY_START_X]
+    starty = enemy_list[handle][ENEMY_START_Y]
+
     -- Calculate distance to player
     dx = player_x - enemy_list[handle][ENEMY_X]
     dy = player_y - enemy_list[handle][ENEMY_Y]
     dist = sqrt(dx * dx + dy * dy)
 
     -- Behavior transitions
-    if health_percent <= FLEE_THRESHOLD / 100.0 or (state = 2 and dist < FLEE_RANGE) then
-        state = 0
+    if (health_percent <= FLEE_THRESHOLD / 100.0) or (state = 2 and dist < FLEE_RANGE) then
+        if (state = 2 and dist < FLEE_RANGE) then
+            state = 2
+        else
+            state = 0
+        end if
     elsif dist < CHASE_RANGE then
         state = 1
     else
@@ -192,11 +201,24 @@ global procedure enemy_update(integer handle)
 
     -- Movement
     if state = 0 then  -- Wander
+        -- occasionally pick a new random target within WANDER_RADIUS
         if rand(100) < 10 then
             angle = rand(360) * PI / 180.0
-            enemy_list[handle][ENEMY_TARGET_X] = enemy_list[handle][ENEMY_X] + cos(angle) * WANDER_RADIUS
-            enemy_list[handle][ENEMY_TARGET_Y] = enemy_list[handle][ENEMY_Y] + sin(angle) * WANDER_RADIUS
+            enemy_list[handle][ENEMY_TARGET_X] = startx + cos(angle) * WANDER_RADIUS
+            enemy_list[handle][ENEMY_TARGET_Y] = starty + sin(angle) * WANDER_RADIUS
         end if
+
+        -- Check if enemy is too far from start position
+        dx = enemy_list[handle][ENEMY_X] - startx
+        dy = enemy_list[handle][ENEMY_Y] - starty
+        dist = sqrt(dx * dx + dy * dy)
+        if dist > WANDER_LIMIT then
+            -- move back toward start position if too far away
+            enemy_list[handle][ENEMY_TARGET_X] = startx
+            enemy_list[handle][ENEMY_TARGET_Y] = starty
+        end if
+
+        -- Move toward target
         dx = enemy_list[handle][ENEMY_TARGET_X] - enemy_list[handle][ENEMY_X]
         dy = enemy_list[handle][ENEMY_TARGET_Y] - enemy_list[handle][ENEMY_Y]
         dist = sqrt(dx * dx + dy * dy)
@@ -205,6 +227,14 @@ global procedure enemy_update(integer handle)
             move_y = enemy_list[handle][ENEMY_Y] + (dy / dist) * enemy_list[handle][ENEMY_SPEED]
             enemy_set_x(handle, move_x)
             enemy_set_y(handle, move_y)
+        end if
+		
+		-- 🔫 Shooting check
+        if dist <= enemy_list[handle][ENEMY_SHOOT_RANGE] then
+            if now >= enemy_list[handle][ENEMY_NEXT_SHOT] then
+                enemy_shoot(handle)
+                enemy_list[handle][ENEMY_NEXT_SHOT] = now + enemy_list[handle][ENEMY_SHOOT_INTERVAL]
+            end if
         end if
 
     elsif state = 1 then  -- Chase
@@ -223,7 +253,7 @@ global procedure enemy_update(integer handle)
         -- 🔫 Shooting check
         if dist <= enemy_list[handle][ENEMY_SHOOT_RANGE] then
             if now >= enemy_list[handle][ENEMY_NEXT_SHOT] then
-                --enemy_shoot(handle)
+                enemy_shoot(handle)
                 enemy_list[handle][ENEMY_NEXT_SHOT] = now + enemy_list[handle][ENEMY_SHOOT_INTERVAL]
             end if
         end if
@@ -237,6 +267,14 @@ global procedure enemy_update(integer handle)
             move_y = enemy_list[handle][ENEMY_Y] + (dy / dist) * enemy_list[handle][ENEMY_SPEED] * 1.5
             enemy_set_x(handle, move_x)
             enemy_set_y(handle, move_y)
+        end if
+		
+		-- 🔫 Shooting check
+        if dist <= enemy_list[handle][ENEMY_SHOOT_RANGE] then
+            if now >= enemy_list[handle][ENEMY_NEXT_SHOT] then
+                enemy_shoot(handle)
+                enemy_list[handle][ENEMY_NEXT_SHOT] = now + enemy_list[handle][ENEMY_SHOOT_INTERVAL]
+            end if
         end if
     end if
 
