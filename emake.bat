@@ -71,6 +71,8 @@ echo objects.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s objects.c
 echo projectile.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s projectile.c
+echo projectile_enemy.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s projectile_enemy.c
 echo tinyxml.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s tinyxml.c
 echo win32lib.c
@@ -200,6 +202,7 @@ del extra.c
 del hash.c
 del objects.c
 del projectile.c
+del projectile_enemy.c
 del tinyxml.c
 del win32lib.c
 del win32l_0.c

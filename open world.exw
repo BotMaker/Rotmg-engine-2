@@ -29,6 +29,7 @@ include extra.ew as ext
 include hash.ew
 include objects.ew
 include projectile.ew
+include projectile_enemy.ew
 
 global integer font0,font1,font2
 global integer spr_players
@@ -349,6 +350,135 @@ procedure init()
 		
 		
 end procedure
+
+
+
+procedure projectile_enemy_update_new()
+atom dist,period,theta
+
+atom amplitude,frequency
+
+sequence list,object_list
+integer bullet_id,ctype
+atom x,y,start_time,angle,elapsed_time,vec,modvec,d,angle2
+integer ehandle
+atom dx,dy,dist2,ex,ey
+integer lifetime,speed
+
+--collision
+integer object_type
+
+sequence stats,nearby ,enemy_dielist
+
+ 
+
+integer found_solid, stype,light
+atom a,b,c
+
+enemy_dielist={}
+
+    list=projectile_enemy_get_list(projectilelist)
+
+    object_list=object_get_list( objectlist )
+
+    for j=1 to length(list) do
+
+      if length(list[j]) then
+        x=list[j][projectile_enemy_x]
+        y=list[j][projectile_enemy_y]
+        angle=list[j][projectile_enemy_angle]
+        start_time=list[j][projectile_enemy_start_time]
+        bullet_id=list[j][projectile_enemy_bullet_id]
+        ctype=list[j][projectile_enemy_type]
+		light=list[j][projectile_enemy_light]
+		
+
+        angle2=angle
+        angle=toRotmgAngle(angle)
+
+        lifetime=real(object_delta(ctype, object_lifetime))
+        speed=real(object_delta(ctype, object_speed))
+
+      	elapsed_time=current_time()-start_time
+      	if elapsed_time>=lifetime then
+		  
+      	  projectile_enemy_free(projectilelist,j)
+	    else
+	
+            dist = (elapsed_time / 1000.0) * (speed / 10.0)
+            if is_even(bullet_id) then
+              period=0
+            else
+              period=PI
+            end if
+
+            if sequence(object_delta(ctype,object_wavy)) then
+              theta = angle + (PI * 64) * sin(period + 6 * PI * (elapsed_time / 1000))
+              x += dist * cos(theta)
+              y += dist * sin(theta)
+            elsif sequence(object_delta(ctype,object_parametric)) then
+
+                theta = elapsed_time / lifetime * 2 * PI
+                a = sin(theta) --* (ProjectileId % 2 != 0 ? 1 : -1);
+                b = sin(theta * 2)-- * (ProjectileId % 4 < 2 ? 1 : -1);
+                c = sin(angle)
+                d = cos(angle)
+                x += (a * d - b * c) * 1
+                y += (a * c + b * d) * 1
+            else
+              x += dist * cos(angle)
+              y += dist * sin(angle)
+              if sequence(object_delta(ctype,object_amplitude)) then
+                --puts(1,"amplitude\n")
+                amplitude=real(object_delta(ctype,object_amplitude))
+                frequency=real(object_delta(ctype,object_frequency))
+
+                d = amplitude * sin(period + elapsed_time / lifetime * frequency * 2 * PI)
+                x += d * cos(angle + PI / 2)
+                y += d * sin(angle + PI / 2)
+
+              end if
+            end if
+
+          stype=real(object_projectile_delta(ctype, 1,object_projectile_ObjectId))
+
+          if sequence(object_projectile_delta(ctype, 1,object_projectile_size)) then
+            draw_spritesheet_floor_angle(x,y, real(object_projectile_delta(ctype, 1,object_projectile_size))/100 , projectile_delta_mod(stype,projectile_sprite), projectile_delta_mod(stype,projectile_indexx),(-angle2-(90+45))+180 )
+
+          else
+            draw_spritesheet_floor_angle(x,y, 1, projectile_delta_mod(stype,projectile_sprite), projectile_delta_mod(stype,projectile_indexx),(-angle2-(90+45))+180 )
+          end if
+		  
+		  
+		  
+          dx = x - player_x
+          dy = y - player_y
+          dist2 = dx*dx + dy*dy
+
+          if dist2 < 1 then  
+                  
+            player_health-=10
+            -- optional: mark projectile for deletion
+            projectile_enemy_free(projectile_enemy_list, j)
+		  
+		  end if
+		  
+			
+          
+          if walkable[floor(y)][floor(x)]=0  then
+            projectile_enemy_free(projectile_enemy_list, j)
+          end if
+
+      	end if
+
+      end if	
+
+
+    end for
+
+
+end procedure
+
 
 
 
@@ -776,9 +906,7 @@ gl_color4f({1,1,1, 1})
 end procedure
 
 
-global atom player_health, max_health 
-player_health = 100.0 -- Example starting health
-max_health = 100.0 -- Maximum health
+
 
  --Lerp function to interpolate between two values global 
  function lerp(atom a, atom b, atom t) 
@@ -1041,7 +1169,7 @@ gl_color4f({1, 1,1, 1})
   player_draw()
   --player_name_draw()
   projectile_update_new() 
-  
+   projectile_enemy_update_new()
 
   
   for i = 1 to length(enemy_list) do
@@ -1204,26 +1332,10 @@ atom x,y
     arcgap=0
   end if
 
-x=0
-y=0
-
-  if arcgap=0 and numofshoot=2 then
-    --x=-0.5*cos(degtorad(get_angle_to(300,300,mousex,mousey)))  
-    --y=-0.5*-sin(degtorad(get_angle_to(300,300,mousex,mousey)))   
-  end if
-
 
   for i=1 to numofshoot do
-     --res=projectile_enemy_enter(client_list[client][client_projectile_enemy],sx, sy,  (angle + (angleInc * i)), current_time(), bulletId,  ownerId, bulletType+1, ownerId)
-
-     ret=projectile_enter(projectilelist,player_x+x,player_y+y, get_angle_to(300,300,mousex,mousey)+(arcgap * i), current_time() ,bullet_id, inv[1][1], light_new( player_x+x, player_y+y, 1.0, 0.8, 0.6, 1.0, 1) )
-     bullet_id+=1
-  
-       if arcgap=0 and numofshoot=2 then
-         --x=0.5*cos(degtorad(get_angle_to(300,300,mousex,mousey)))  
-         --y=0.5*-sin(degtorad(get_angle_to(300,300,mousex,mousey)))   
-       end if
-     
+     ret=projectile_enter(projectilelist,player_x,player_y, get_angle_to(300,300,mousex,mousey)+(arcgap * i), current_time() ,bullet_id, inv[1][1], light_new( player_x, player_y, 1.0, 0.8, 0.6, 1.0, 1) )
+     bullet_id+=1   
   end for
   
 end procedure 

@@ -15,6 +15,10 @@ constant  vk_left=4
 global atom player_x,player_y
 atom elapsed_time,starttime,SPEED
 
+global atom player_health, max_health 
+player_health = 100.0 -- Example starting health
+max_health = 100.0 -- Maximum health
+
 player_x=480
 player_y=480
 

@@ -163,13 +163,6 @@ global function glu_project(atom world_x, atom world_y, atom world_z)
     viewport   = get_viewport()
 
 
---puts(1, "ModelView: \n")
---?modelview
---puts(1, "Projection: \n")
---?projection
---puts(1, "Viewport: \n" )
---?viewport
-
     in_vec = {world_x, world_y, world_z, 1.0}
     mv_vec = multiply_matrix_vector(modelview, in_vec)
     clip   = multiply_matrix_vector(projection, mv_vec)
