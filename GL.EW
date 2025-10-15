@@ -850,6 +850,7 @@ global integer wglCopyContext,wglCreateContext,wglCreateLayerContext,
                glViewport 
 
 
+glGetIntegerv = link_c_proc(opengl32, "glGetIntegerv", {GLenum, C_POINTER})
 glGetDoublev = link_c_proc(opengl32,"glGetDoublev",{ GLenum, C_POINTER})
 glMultMatrixd = link_c_proc(opengl32,"glMultMatrixd",{C_POINTER})
 

@@ -347,8 +347,7 @@ procedure init()
 		map_load()
 		
 		
-		?enemy_new(1020, 1020, 100.0, 0.1, 5) 
-        ?enemy_new(1025, 1025, 100.0, 0.1, 5)
+		
 end procedure
 
 
@@ -458,54 +457,34 @@ enemy_dielist={}
           light_set_y(light,y)
 		  
 		  nearby = grid_get_nearby(x, y, 1)
-		  if length(nearby) then
-		    --puts(1,"projectile near any enemy\n")
-			--?nearby
 			
-			
-			if length(nearby) then
-    for k = 1 to length(nearby) do
-	
-         if  sequence (nearby[k]) then
-         ehandle = nearby[k][1]
-		 else
-		   ehandle = nearby[k]
-		 end if
+	      if length(nearby) then
+            for k = 1 to length(nearby) do
+              ehandle = nearby[k][1]
+              if length(enemy_list[ehandle]) > 0 then
+                ex = enemy_list[ehandle][ENEMY_X]
+                ey = enemy_list[ehandle][ENEMY_Y]
 
-        if length(enemy_list[ehandle]) > 0 then
-            ex = enemy_list[ehandle][ENEMY_X]
-            ey = enemy_list[ehandle][ENEMY_Y]
+                -- simple distance-based collision
+                dx = x - ex
+                dy = y - ey
+                dist2 = dx*dx + dy*dy
 
-            -- simple distance-based collision
-            dx = x - ex
-            dy = y - ey
-            dist2 = dx*dx + dy*dy
-
-            if dist2 < 0.5 then  -- 4 pixels radius (2^2 * 4)
-                -- Hit enemy
-                enemy_list[ehandle][ENEMY_HEALTH] -= 10  -- example damage
+                if dist2 < 1 then  
+                  -- Hit enemy
+                  enemy_list[ehandle][ENEMY_HEALTH] -= 10  -- example damage
 				
-				if enemy_list[ehandle][ENEMY_HEALTH] <0 then
-				   enemy_dielist&=ehandle
-				end if
-				
-				
+				  if enemy_list[ehandle][ENEMY_HEALTH] <0 then
+				     enemy_dielist&=ehandle
+				  end if
 
                 -- optional: mark projectile for deletion
                 light_delete(light)
                 projectile_free(projectilelist, j)
-            end if
-        end if
-    end for
-end if
-			
-			
-			
-			
-			
-			
-			
-		  end if
+               end if
+             end if
+           end for
+         end if	
           
           if walkable[floor(y)][floor(x)]=0  then
 		    light_delete(light)
@@ -523,8 +502,6 @@ end if
 
     end for
 
-
-   
 
 end procedure
 
@@ -846,6 +823,9 @@ end procedure
 
 
 
+atom debug_time
+debug_time = current_time()+100
+
 sequence input_string
 input_string=""
 
@@ -862,13 +842,125 @@ light_change_time=current_time()+1
 start_x=light_get_x(light1)
 start_y=light_get_y(light1)
 
-constant TARGET_FRAME_MS = 8    		  
+constant TARGET_FRAME_MS = 8   
+
+constant SCREEN_W = 800
+constant SCREEN_H = 600
+constant TILES_VISIBLE_X = 21
+constant TILES_VISIBLE_Y = 21
+
+constant TILE_SIZE_X = SCREEN_W / TILES_VISIBLE_X
+constant TILE_SIZE_Y = SCREEN_H / TILES_VISIBLE_Y
+
+global function world_to_screen3(atom world_x, atom world_y)
+    atom screen_x, screen_y
+
+    -- Convert tile coordinate to pixel coordinate
+    screen_x = (world_x - camera_x) * TILE_SIZE_X
+    screen_y = (world_y - camera_y) * TILE_SIZE_Y
+	
+	screen_x = (world_x - camera_x) * TILE_SIZE_X + (SCREEN_W / 2)
+    screen_y = (world_y - camera_y) * TILE_SIZE_Y + (SCREEN_H / 2)
+
+    return {screen_x, screen_y}
+end function
+
+
+function world_to_screen4(atom world_x, atom world_y)
+    atom screen_x, screen_y
+
+    -- Center-based camera: subtract camera, scale by tile size,
+    -- then shift to center of screen and align to tile center.
+    screen_x = (world_x - camera_x) * TILE_SIZE_X + (SCREEN_W / 2) - (TILE_SIZE_X / 2)
+    screen_y = (world_y - camera_y) * TILE_SIZE_Y + (SCREEN_H / 2) - (TILE_SIZE_Y / 2)
+
+    -- Optional: snap to integer pixel positions
+    screen_x = floor(screen_x)
+    screen_y = floor(screen_y)
+
+    return {screen_x, screen_y}
+end function
+
+
+
+
+
+procedure draw_dist()
+sequence nearby ,pos
+integer ehandle,count
+atom ex,ey,dx,dy,dist2,xx,yy,dir, enemy_x,enemy_y
+
+
+
+
+
+   nearby = grid_get_nearby(player_x, player_y, 4)
+   if length(nearby) then
+      for k = 1 to length(nearby) do
+          ehandle = nearby[k][1]
+          if length(enemy_list[ehandle]) > 0 then
+             ex = enemy_list[ehandle][ENEMY_X]
+             ey = enemy_list[ehandle][ENEMY_Y]
+
+             -- simple distance-based collision
+             dx = player_x - ex
+             dy = player_y - ey
+             dist2 = dx*dx + dy*dy
+			 
+			 --draw_text(100,100,"enemy distance to player "&sprint(dist2))
+			 
+			 dist2=point_distance(player_x,player_y,ex,ey)
+			 --d3d:draw_line(floor(camera_x)-(14+zoom_scale),floor(camera_y)-(12+zoom_scale),ex,ey)
+			 d3d:draw_line(  floor(camera_x)-(14+zoom_scale),  floor(camera_y)-(12+zoom_scale)  ,   400,  600)
+			 
+			 dir=degtorad(get_angle_to(player_x ,  player_y , ex,ey))-90
+			 xx=floor(camera_x)-(1+zoom_scale)-player_x+329
+			 yy=floor(camera_y)-(zoom_scale)-player_y +300
+			 enemy_x=ex  --(floor(camera_x)-(1+zoom_scale))
+			 enemy_y=ey  --(floor(camera_y)-(zoom_scale))
+			 
+			 
+			 gl_matrixMode(GL_PROJECTION)
+gl_loadIdentity()
+glu_perspective(45, 800.0/600, 1, 32000)
+
+gl_matrixMode(GL_MODELVIEW)
+gl_loadIdentity()
+glu_lookAt({camera_x, camera_y, camera_z},
+           {camera_x + cos(camera_yaw*PI/180),
+            camera_y + sin(camera_yaw*PI/180),
+            0},
+           {0, 0, 1})
+			 
+			  pos =glu_project(enemy_x, enemy_y, 1)
+			  pos[2]+=64
+			  --?enemy_x
+			  --?enemy_y
+			  
+			 --?pos
+			 d3d_set_projection_ortho(0,0,800,600,0)
+             d3d_set_hidden(0)
+			 --usleep(100)
+			 d3d:draw_line(  xx,  yy ,  pos[1], pos[2])
+
+			 --exit
+			end if
+		end for
+	end if
+	pos=world_to_screen3(camera_x, camera_y)
+	--draw_text( 100,180, "camera postion  "&sprint(camera_x)&"    "&sprint(camera_y) )
+	--draw_text( 100,200, "camera postion world" &sprint(pos[1])&"    "&sprint(pos[2]) )
+end procedure
+
+
+
+ 		  
 
 procedure draw()
-
-atom frametime,deltatime ,brightness,last_brightness
+sequence ppp
+atom frametime,deltatime ,brightness,last_brightness,dx,dy,dz
 integer index,sprite
-atom ex,ey
+atom ex,ey,fx,fy
 sequence color
 camera_x=player_x+2
 camera_y=player_y+1
@@ -880,24 +972,14 @@ d3d_set_count(0)
      -- Store time for next frame
     frametime = current_time()
 	
-	if current_time()>light_change_time then
-	  light_change_time=current_time()+1
-	  light_dir+=1
-	  --puts(1,"time\n")
-	  --?light_change_time
-	  --?current_time()+0.01
-	  if light_dir>=360 then
-	  light_dir=0
-	  end if
-	  --light_set_x(light1, player_x+cos(light_dir*PI/180)*light_speed)
-      --light_set_y(light1,player_y-sin(light_dir*PI/180)*light_speed)
-	end if
 	
 	
     gl_clear(GL_COLOR_BUFFER_BIT + GL_DEPTH_BUFFER_BIT)
 
-	--normal projection
+--normal projection
     d3d_set_projection(camera_x,camera_y,camera_z, camera_x+cos(camera_yaw*PI/180), camera_y-sin(camera_yaw*PI/180), 0, 0,0,1)
+	
+	
 
 gl_enable(GL_TEXTURE_2D)
 gl_enable(GL_BLEND)
@@ -951,19 +1033,16 @@ gl_color4f({1, 1,1, 1})
    d3d_bind_texture(1) 
    gl_color4f({1, 1, 1, 1})
   
-  
-  
 
   gl_bindTexture (GL_TEXTURE_2D, 7)
 
-  --draw_texturesheet_floor(80,80, 1,7,   21+21,  0.1+(0.1/-80))
-  --draw_texturesheet_floor(80.5, 78+xxx,1,7,  21+21,  0.1+(0.1/-(78+xxx)))
 
-  --draw_spritesheet_floor(ex,ey, 1, spr_players, 21+21)
 
-player_draw()
+  player_draw()
   --player_name_draw()
-  projectile_update_new()  
+  projectile_update_new() 
+  
+
   
   for i = 1 to length(enemy_list) do
         if length(enemy_list[i]) then
@@ -973,17 +1052,12 @@ player_draw()
             draw_spritesheet_floor(ex, ey, 1, sprite,enemy_list[i][ ENEMY_FRAMEINDEX])  -- Adjust sprite index as needed
         end if
     end for
+	
+	
 
 
 
-  --draw_texturesheet_wall(75, 75, 1, 9, 144, 0.1)
-  --draw_texturesheet_wall(84, 83, 1, 9, 144, 0.1)
-  --draw_texturesheet_wall(85, 83, 1, 9, 144, 0.1)
-  --draw_texturesheet_wall(86, 83, 1, 9, 144, 0.1)
 
-  --draw_texturesheet_wall(83, 82, 1, 9, 144, 0.1)
-  --draw_texturesheet_wall(84, 82, 1, 9, 144, 0.1)
-  --draw_texturesheet_wall(85, 82, 1, 9, 144, 0.1)
 
   d3d_set_projection_ortho(0,0,800,600,0)
   d3d_set_hidden(0)
@@ -996,9 +1070,25 @@ player_draw()
 
   gui_draw_inv_slots2()
    draw_health()
-  
+   
+   
+   
+   currentfont=font0
+  draw_set_color(255,0,0)
   
 
+   
+   
+   
+   if current_time()>debug_time then
+     grid_debug_summary_full()
+	 enemy_debug_count()
+	 debug_time=current_time()+1000
+   end if
+
+   grid_debug_summary_draw()
+   enemy_debug_draw()
+   draw_dist()
 
   currentfont=font0
   draw_set_color(255,0,0)
@@ -1178,23 +1268,14 @@ else
   
   if key_check(VK_LEFT) then 
     camera_yaw+=4
-    --map_load2()
-	--player_class-=1
-	--if player_class<0 then
-	--  player_class=14
-	--end if
-	--player_class_set(player_class)
+
   end if
     
   if key_check(VK_RIGHT) then 
     camera_yaw-=4
-	--player_class-=1
-	--if player_class>14 then
-	--  player_class=0
-	--end if
-	--player_class_set(player_class)
-  end if
 
+  end if
+  
   if key_check('A') then 
     camera_x = camera_x + (cos (degtorad(camera_yaw+90)) * .5)
     camera_y = camera_y + -(sin (degtorad(camera_yaw+90)) * .5)
@@ -1216,6 +1297,7 @@ else
     camera_y = camera_y + -(sin (degtorad(camera_yaw-180)) * .5)
   end if
 
+
   if key_check(VK_END)  then
     camera_z+=1
   end if
@@ -1226,14 +1308,13 @@ else
   end if
   
   if key_check(' ')  then
-	player_health-=2
 	
-	enemy_delete(1)
-	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
-	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
-	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
-	?enemy_new(1020, 1020, 100.0, 0.1, 5) 
-	enemy_delete(3)
+	
+	--ret=enemy_new(1020, 1020, 100.0, 0.1, 5) 
+    --ret=enemy_new(1021, 1021, 100.0, 0.1, 5) 
+	--ret=enemy_new(1022, 1022, 100.0, 0.1, 5) 
+	--ret=enemy_new(1023, 1023, 100.0, 0.1, 5) 
+	
   end if
   
   
@@ -1260,15 +1341,13 @@ else
     player_update()
   end if
   
-  
   -- Update all enemies
     for i = 1 to length(enemy_list) do
         if length(enemy_list[i]) then
             enemy_update(i)
         end if
-    end for
+    end for  
 
-   grid_debug_summary_full()
   euglTimerFunc(30,loop_id,0)
 end procedure
 loop_id = routine_id("loop")
@@ -1276,6 +1355,7 @@ loop_id = routine_id("loop")
 
 
 procedure key(integer keycode,integer mode,integer y)
+integer ret
  	if keycode = VK_ESCAPE then
   	  ewPostQuitMessage(#10)
           abort(0)
@@ -1284,6 +1364,11 @@ procedure key(integer keycode,integer mode,integer y)
         if mode=0 then
           keyboard_char=keycode
           key_add(keycode)
+		    if key_check(' ')  then
+
+	         --ret=enemy_new(1020, 1020, 100.0, 0.1, 5) 
+		     ret=enemy_new(camera_x, camera_y, 100.0, 0.1, 5) 
+           end if
         else
          key_remove(keycode)
         end if
@@ -1312,6 +1397,9 @@ procedure motion(integer x,integer y)
   mousex=x
   mousey=y
   button_update_mouse(x,y)
+  --?mousex
+  --?mousey
+  --usleep( 30)
 end procedure
 
 

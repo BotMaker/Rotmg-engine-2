@@ -2,11 +2,10 @@
 constant CHUNK_SIZE = 4  -- width/height of each chunk in pixels
 constant WORLD_WIDTH = 2048
 constant WORLD_HEIGHT = 2048
-constant CHUNK_COLS = 4
-constant CHUNK_ROWS = 4
+
 
 global integer grid_cols, grid_rows
-sequence empty,empty_freelist
+global sequence empty,empty_freelist
 grid_cols = floor(WORLD_WIDTH / CHUNK_SIZE)
 grid_rows = floor(WORLD_HEIGHT / CHUNK_SIZE)
 
@@ -105,7 +104,9 @@ global function grid_new(atom x, atom y, integer enemy)
   end if
   
   class_list[handle][grid_empty_handle ]=empty_handle
-  empty[cy][cx][empty_handle]&=enemy
+  --empty[cy][cx][empty_handle]&=enemy
+  
+  empty[cy][cx][empty_handle] = append(empty[cy][cx][empty_handle], enemy)
   
 
 
@@ -139,13 +140,15 @@ global procedure grid_update_position(integer handle, atom new_x, atom new_y)
         -- add to new chunk
         if length(empty_freelist[new_cy][new_cx]) > 0 then
             empty_handle = empty_freelist[new_cy][new_cx][1]
-            empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..$]
+            --empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..$]
+			empty_freelist[new_cy][new_cx] = empty_freelist[new_cy][new_cx][2..length(empty_freelist[new_cy][new_cx])]
         else
             empty[new_cy][new_cx] = append(empty[new_cy][new_cx], {})
             empty_handle = length(empty[new_cy][new_cx])
         end if
 
-        empty[new_cy][new_cx][empty_handle] = class_list[handle][grid_enemy_handle]
+        --empty[new_cy][new_cx][empty_handle] = class_list[handle][grid_enemy_handle]
+		empty[new_cy][new_cx][empty_handle] = {class_list[handle][grid_enemy_handle]}
         class_list[handle][grid_cx] = new_cx
         class_list[handle][grid_cy] = new_cy
         class_list[handle][grid_empty_handle] = empty_handle
@@ -171,7 +174,8 @@ global function grid_get_nearby(atom x, atom y, integer range)
     for yy = min_cy to max_cy do
     for xx = min_cx to max_cx do
         for i = 1 to length(empty[yy][xx]) do
-            if not equal(empty[yy][xx][i], {}) then
+           --if not equal(empty[yy][xx][i], {}) then
+		   if length(empty[yy][xx][i]) then
                 results = append(results, empty[yy][xx][i])
             end if
         end for
@@ -182,8 +186,13 @@ global function grid_get_nearby(atom x, atom y, integer range)
 end function
 
 
+integer total, active, used_cells, free_cells
+total = 0
+active = 0
+used_cells = 0
+free_cells = 0
+
 global procedure grid_debug_summary_full()
-    integer total, active, used_cells, free_cells
     total = length(class_list)
     active = 0
     used_cells = 0
@@ -202,59 +211,17 @@ global procedure grid_debug_summary_full()
         end for
     end for
 
-    printf(1, "Grid Summary %d:\n",0)
-    printf(1, "  total handles: %d\n", total)
-    printf(1, "  active: %d\n", active)
-    printf(1, "  freed: %d\n", length(class_freelist))
-    printf(1, "  used grid slots: %d\n", used_cells)
-    printf(1, "  free grid slots: %d\n\n", free_cells)
+
 end procedure
 
-integer temp
-temp=grid_new(1024,1024,1)
+global procedure grid_debug_summary_draw()
 
-grid_update_position(temp, 1024, 1024)
-grid_update_position(temp, 124, 1024)
-grid_update_position(temp, 1024, 124)
-grid_update_position(temp, 24, 24)
-
-global function grid_get_list(integer handle)
-  return class_list[handle]
-end function
-
-global function grid_get_free_size(integer handle)
-  return length(grid_freelist[handle])
-end function
-
-
-global function grid_get_freelist(integer handle)
-  return grid_freelist[handle]
-end function
-
-
-global function grid_get_x(integer handle)
-  return class_list[handle][grid_x]
-end function
-
-global function grid_get_y(integer handle)
-  return class_list[handle][grid_y]
-end function
-
-global function grid_get_totalnumber()
-  return length(class_list)
-end function
-
-global procedure grid_set_x(integer handle, integer x)
-  class_list[handle][grid_x]=x
-end procedure
-
-global procedure grid_set_y(integer handle, integer y)
-  class_list[handle][grid_y]=y
+    draw_text(0,0,"Grid Summary")
+    draw_text(0,20,"total handles: "&sprint(total))
+    draw_text(0,40,"active: "&sprint(active))
+	draw_text(0,60,"freed: "&sprint(length(class_freelist)))
+	draw_text(0,80,"grid slots:: "&sprint(used_cells))
+	draw_text(0,100,"free grid slots: "&sprint(free_cells))
 end procedure
 
 
-global procedure grid_delete(integer handle)
-  class_list[handle]={}
-  grid_freelist[handle]={}
-  class_freelist =append(class_freelist, handle)
-end procedure

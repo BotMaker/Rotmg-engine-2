@@ -16,6 +16,42 @@ enemy_list = {}
 class_freelist ={}
 enemy_freelist = {}
 
+integer active, free_count, total
+    active = 0
+    total = 0
+    free_count = 0
+	
+	
+
+global procedure enemy_debug_count()
+    active = 0
+    total = 0
+    free_count = 0
+    total = length(enemy_list)
+    free_count = length(enemy_freelist)
+
+    for i = 1 to total do
+        if length(enemy_list[i]) then
+            active += 1
+        end if
+    end for
+
+
+end procedure
+
+global procedure enemy_debug_draw()
+
+    
+    draw_text(0,140,"=== Enemy Count Debug === ")
+	draw_text(0,160,"Total Handles: "&sprint(total))
+	draw_text(0,180,"Active Enemies: "&sprint(active))
+	draw_text(0,200,"Free Handles: "&sprint(free_count))
+
+end procedure
+
+
+
+
 
 -- Function to create a new enemy
 global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite)

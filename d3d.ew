@@ -60,6 +60,159 @@ global procedure draw_set_color(integer r, integer g, integer b)
 end procedure 
 
 
+function multiply_matrix_vector(sequence m, sequence v)
+    -- m is a 16-element matrix in column-major order (OpenGL style)
+    -- v is a 4-element vector {x, y, z, w}
+    sequence r
+    r = {0, 0, 0, 0}
+
+    r[1] = m[1]*v[1] + m[5]*v[2] + m[9]*v[3]  + m[13]*v[4]
+    r[2] = m[2]*v[1] + m[6]*v[2] + m[10]*v[3] + m[14]*v[4]
+    r[3] = m[3]*v[1] + m[7]*v[2] + m[11]*v[3] + m[15]*v[4]
+    r[4] = m[4]*v[1] + m[8]*v[2] + m[12]*v[3] + m[16]*v[4]
+
+    return r
+end function
+
+
+function peek_doubles(atom ptr, integer count)
+    sequence  res
+	res = repeat(0.0, count)
+    for i = 0 to count - 1 do
+        res[i + 1] = peek({ptr + i * 8, 8})  -- read 8 bytes per double
+    end for
+    return res
+end function
+
+function rshift(integer x, integer n) 
+return floor(x / power(2, n)) 
+end function
+
+
+function f32_to_atom(atom u)
+    integer sign, exp, frac
+    atom mantissa, value
+
+    sign = 1
+    if and_bits(u, #80000000) != 0 then
+        sign = -1
+    end if
+
+    exp  = and_bits(floor(u / power(2, 23)), #FF)
+    frac = and_bits(u, #7FFFFF)
+
+    if exp = #FF then
+        -- NaN or Infinity
+        value = sign * 1.0e300
+    elsif exp = 0 then
+        mantissa = frac / power(2, 23)
+        value = sign * power(2, -126) * mantissa
+    else
+        mantissa = 1 + frac / power(2, 23)
+        value = sign * power(2, exp - 127) * mantissa
+    end if
+
+    return value
+end function
+
+
+-- Reads a 4x4 OpenGL matrix (16 floats)
+function get_mat4_float(atom getter)
+    atom ptr, u
+    sequence m
+
+    ptr = allocate(16*4)
+    c_proc(glGetFloatv, {getter, ptr})
+
+    m = repeat(0.0, 16)
+    for i = 0 to 15 do
+        u = peek4u(ptr + i*4)
+        m[i+1] = f32_to_atom(u)
+    end for
+
+    free(ptr)
+    return m
+end function
+
+
+-- Reads the 4-integer viewport
+function get_viewport()
+    atom ptr
+    sequence vp
+
+    ptr = allocate(4*4)
+    c_proc(glGetIntegerv, {GL_VIEWPORT, ptr})
+
+    vp = {}
+    for i = 0 to 3 do
+        vp = append(vp, peek4s(ptr + i*4))
+    end for
+
+    free(ptr)
+    return vp  -- {x, y, width, height}
+end function
+
+global function glu_project(atom world_x, atom world_y, atom world_z)
+    sequence modelview, projection, viewport
+    sequence in_vec, mv_vec, clip
+    atom ndc_x, ndc_y, ndc_z
+    atom win_x, win_y, win_z
+
+    modelview  = get_mat4_float(GL_MODELVIEW_MATRIX)
+    projection = get_mat4_float(GL_PROJECTION_MATRIX)
+    viewport   = get_viewport()
+
+
+--puts(1, "ModelView: \n")
+--?modelview
+--puts(1, "Projection: \n")
+--?projection
+--puts(1, "Viewport: \n" )
+--?viewport
+
+    in_vec = {world_x, world_y, world_z, 1.0}
+    mv_vec = multiply_matrix_vector(modelview, in_vec)
+    clip   = multiply_matrix_vector(projection, mv_vec)
+
+    if clip[4] = 0 then
+        return {-1, -1, -1}
+    end if
+
+    ndc_x = clip[1] / clip[4]
+    ndc_y = clip[2] / clip[4]
+    ndc_z = clip[3] / clip[4]
+
+    win_x = viewport[1] + (1 + ndc_x) * viewport[3] / 2
+    win_y = viewport[2] + (1 + ndc_y) * viewport[4] / 2
+    win_z = (1 + ndc_z) / 2
+
+    return {win_x, win_y, win_z}
+end function
+
+
+	
+
+global function get_camera_vectors()
+    atom ptr,right_x,right_y,fwd_x,fwd_y
+	sequence m
+	ptr = allocate(8*16)
+    c_proc(glGetDoublev, {GL_MODELVIEW_MATRIX, ptr})
+    m = peek({ptr, 8*16})
+    free(ptr)
+
+    -- OpenGL stores column-major, so:
+    -- right vector  = first column
+    -- up vector     = second column
+    -- forward vector = -third column (OpenGL looks down -Z)
+    right_x =  m[1]
+    right_y =  m[2]
+    fwd_x   = -m[9]
+    fwd_y   = -m[10]
+
+    return {{right_x, right_y}, {fwd_x, fwd_y}}
+end function
+
+
 
 global procedure draw_text(atom x, atom y, sequence text)
 integer sprite_width,sprite_height,images_per_row,frameindex,spr,fw
@@ -303,7 +456,6 @@ transformation_matrix_set({1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1})
 mem_copy(transformation_matrix_defalut, transformation_matrix, 8*16)
 
 
-
 global procedure d3d_set_projection(atom xfrom,atom yfrom,atom zfrom,atom xto,atom yto,atom zto,atom xup,atom yup,atom zup)
 
   gl_matrixMode(GL_PROJECTION)
@@ -316,6 +468,27 @@ global procedure d3d_set_projection(atom xfrom,atom yfrom,atom zfrom,atom xto,at
   gl_getDoublev(GL_MODELVIEW_MATRIX,projection_matrix)
   gl_multMatrixd(transformation_matrix)
 end procedure 
+
+
+
+
+global procedure d3d_set_projection2(atom xfrom,atom yfrom,atom zfrom,atom xto,atom yto,atom zto,atom xup,atom yup,atom zup)
+    -- Set projection matrix first
+    gl_matrixMode(GL_PROJECTION)
+    gl_loadIdentity()
+    glu_perspective(fieldofview,
+                    -view_wview[view_current] / view_hview[view_current],
+                    0.1, 1000.0)
+
+    -- Set modelview (camera) matrix
+    gl_matrixMode(GL_MODELVIEW)
+    gl_loadIdentity()
+    glu_lookAt({xfrom, yfrom, zfrom},
+               {xto, yto, zto},
+               {xup, yup, zup})
+end procedure 
+
+
 
 
 global procedure d3d_set_projection_ext(atom xfrom,atom yfrom,atom zfrom,atom xto,atom yto,atom zto,atom xup,atom yup,atom zup,atom angle,atom aspect,atom znear,atom zfar)
