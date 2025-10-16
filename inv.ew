@@ -5,7 +5,7 @@ global sequence inv_slot_buttons
 inv_slot_buttons={}
 
 global sequence inv
-  inv=repeat({-1,0},12)
+  inv=repeat({-1,0},20)
 
 
   --17, 11, 14, 9, wizzard
@@ -33,7 +33,10 @@ global sequence inv
   
 
   inv[10][1]=#C50
+  
 
   --inv[11][1]=object_type_from_name("Potion of Life")
 
   inv[12][1]=object_type_from_name("Arbiters Wrath")
+  
+  inv[13][1]=#C03

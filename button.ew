@@ -1,19 +1,30 @@
 include inv.ew
 
+
+
 sequence class_list,class_freelist,button_freelist
 class_list={}
 class_freelist={}
 button_freelist={}
 
 
-constant button_x = 1
-constant button_y = 2
-constant button_width = 3
-constant button_height = 4
-constant button_clicked = 5
-constant button_index = 6
-constant button_invslot = 7
 
+
+global constant button_x = 1
+global constant button_y = 2
+global constant button_width = 3
+global constant button_height = 4
+global constant button_clicked = 5
+global constant button_index = 6
+global constant button_invslot = 7
+global constant button_isvisable = 8
+
+
+global procedure button_set_index(integer handle, integer v)
+  class_list[handle][button_index]=v
+end procedure
+
+include lootbag.ew
 
 atom click_time
 click_time=0
@@ -44,7 +55,7 @@ global function button_new(integer x, integer y, atom width, integer height,inte
     handle=length(class_list)
   end if
 
-  class_list[handle]={0,0,0,0,0,0,0}
+  class_list[handle]={0,0,0,0,0,0,0,0}
   button_freelist[handle]={}
   
   class_list[handle][button_x]=x
@@ -54,8 +65,12 @@ global function button_new(integer x, integer y, atom width, integer height,inte
   class_list[handle][button_clicked]=0
   class_list[handle][button_index]=index
   class_list[handle][button_invslot]=invslot
+  class_list[handle][button_isvisable]=1
   return handle
 end function
+
+
+
 
 --=========================================================
 -- Swap Logic
@@ -70,6 +85,7 @@ end procedure
 
 procedure try_swap_slots(integer a, integer b)
     integer typeA, typeB
+	sequence items
 
     if a = b or a <= 0 or b <= 0 then
         return
@@ -94,19 +110,34 @@ procedure try_swap_slots(integer a, integer b)
         if b <= length(class_list) and length(class_list[b]) then
             class_list[b][button_index] = inv[b][1]
         end if
+		
+		if lootbag_enabled=1 then
+		  if a>12 or b>12 then
+			items=lootbag_get_items(lootbag_enable_id)
+			for i=1 to 8 do
+			  items[i]=inv[i+12][1]
+			end for
+			lootbag_set_items(lootbag_enable_id,items)
+		  end if
+		end if
     end if
 end procedure
 
 
 global procedure button_draw()
-   integer x,y,width,height,index
+   integer x,y,width,height,index,visable
    for i = 1 to length(class_list) do
+      if lootbag_enabled= 0 and i>12 then
+	    exit
+	  end if
+    
 	  if length(class_list[i]) then
 	    x=class_list[i][button_x]
 		y=class_list[i][button_y]
 		width=class_list[i][button_width]
 		height=class_list[i][button_height]
         index=class_list[i][button_index]
+		visable=class_list[i][button_isvisable]
 		if index!=-1 and i!=selected then
 		  draw_spritesheet_texture_ext(class_list[i][button_x]+3,class_list[i][button_y]+3,equip_delta_mod(index,equip_sprite),  equip_delta_mod(index,equip_indexx),34,34)
 		end if
@@ -132,17 +163,19 @@ global procedure button_draw()
 end procedure
 
 global procedure button_mouse_pressed(integer mx, integer my)
-    integer  x, y, width, height, index
+    integer  x, y, width, height, index,visable
 
     for i = 1 to length(class_list) do
+
         if length(class_list[i]) then
             x = class_list[i][button_x]
             y = class_list[i][button_y]
             width = class_list[i][button_width]
             height = class_list[i][button_height]
             index = class_list[i][button_index]
-
+            visable=class_list[i][button_isvisable]
             -- only select if mouse is inside slot AND slot has an item
+			
             if mx >= x and mx <= x + width and my >= y and my <= y + height then
                 if index != -1 then
                     selected = i
@@ -158,20 +191,29 @@ end procedure
 
 global procedure button_mouse_released(integer mx, integer my)
     integer  x, y, w, h
-	 integer released_inside
+	 integer released_inside,visable
+	 sequence items
     released_inside = 0
 
     for i = 1 to length(class_list) do
+	  
         if length(class_list[i]) then
             x = class_list[i][button_x]
             y = class_list[i][button_y]
             w = class_list[i][button_width]
             h = class_list[i][button_height]
+			visable=class_list[i][button_isvisable]
 
             if mx >= x and mx <= x + w and my >= y and my <= y + h then
                 if selected > 0 and selected <= length(class_list) then
+				  if lootbag_enabled= 0 and i<12 then
+	                try_swap_slots(selected, i)
+					selected=0
+	             end if
+                 if lootbag_enabled= 1 then 
                     try_swap_slots(selected, i)
 					selected=0
+				 end if
                 end if
                 released_inside = 1
                 exit
@@ -182,10 +224,19 @@ global procedure button_mouse_released(integer mx, integer my)
 	-- If released outside GUI area (e.g. to the left of 610px)
     if released_inside = 0 and selected > 0 then
         if mx < 610 then
+		    if lootbag_enabled= 1 then 
+			  --need to remove item from lootbag
+			  items=lootbag_get_items(lootbag_enable_id)
+			   items[selected-12]=-1
+			  lootbag_set_items(lootbag_enable_id,items)
+			end if
+		
             -- Remove the item from the inventory
             inv[selected][1] = -1
             class_list[selected][button_index] = -1
 			selected = 0
+			
+			
         end if
     end if
 
@@ -229,6 +280,18 @@ end procedure
 global procedure button_set_y(integer handle, integer y)
   class_list[handle][button_y]=y
 end procedure
+
+global procedure button_set_visable(integer handle, integer val)
+  class_list[handle][button_isvisable]=val
+end procedure
+
+global function button_get_visable(integer handle)
+  return class_list[handle][button_isvisable]
+end function
+
+
+
+
 
 
 global procedure button_delete(integer handle)

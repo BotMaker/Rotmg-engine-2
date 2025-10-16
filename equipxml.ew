@@ -330,6 +330,19 @@ global function equip_delta_mod( integer index, integer id )
     return object_list[ index ][id][2]
 end function
 
+global function equip_get_random( )
+   sequence list
+   integer r
+   list={}
+   for i=1 to length(object_list) do
+     if length(object_list[i]) then
+	   list&=i
+	 end if
+   end for 
+   r=rand(length(list))
+   return list[r]
+end function
+
 
 global procedure equip_set_sprite(sequence data)
 for i=1 to length(object_list) do

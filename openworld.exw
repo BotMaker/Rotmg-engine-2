@@ -7,6 +7,12 @@ include misc.e
 include database.e
 include light.ew
 
+global atom camera_x,camera_y,camera_z,camera_yaw
+camera_yaw=90
+camera_x=86
+camera_y=84
+camera_z=21 --values from rotmg changred from 12
+
 
 without warning
 without type_check
@@ -45,31 +51,26 @@ include "equipxml.ew"
 include "xmlall.ew"
 include "projectilexml.ew"
 
-include button.ew
+
+
+
 
 
 integer objectlist,hashlist,projectilelist
 objectlist=object_new()
 hashlist=hash_new()
 projectilelist=projectile_new()
-
-
-include wmap.ew
-
 global sequence walkable,obstacle
 walkable={}
 obstacle={}
 
 
 
+global integer lootbag_enabled,lootbag_enable_id
+lootbag_enabled=0
+lootbag_enable_id=0
 
-
-
-global atom camera_x,camera_y,camera_z,camera_yaw
-camera_yaw=90
-camera_x=86
-camera_y=84
-camera_z=21 --values from rotmg changred from 12
+include wmap.ew
 
 global function speed_ground(atom x, atom y)
 atom speed_mut
@@ -85,6 +86,16 @@ atom speed_mut
   return speed_mut 
     
 end function
+
+include player.ew
+
+include button.ew
+
+include lootbag.ew
+
+
+
+
 
 -- Enemy constants
 global constant ENEMY_X = 1
@@ -104,9 +115,10 @@ global constant ENEMY_START_X = 14
 global constant ENEMY_START_Y = 15 
 
 global sequence enemy_list
-include player.ew
+
 include grid.ew
 include enemy.ew
+
 
 procedure map_load()
   --wmap_load("map.wmap")
@@ -638,6 +650,7 @@ enemy_dielist={}
 				  if enemy_list[ehandle][ENEMY_HEALTH] <=0 then
 				     
 				     enemy_dielist&=ehandle
+					 dist=lootbag_new(ex, ey,{equip_get_random( ),equip_get_random( ),equip_get_random( ),equip_get_random( ), equip_get_random( ),equip_get_random( ),equip_get_random( ), equip_get_random( )} )
 				  end if
 
                 -- optional: mark projectile for deletion
@@ -704,8 +717,10 @@ procedure draw_description_text(integer x, integer y ,sequence text)
 end procedure
 
 
-sequence inv_slot_buttons
-inv_slot_buttons={}
+
+
+
+
 
 procedure gui_inv_slots_create()
   integer x ,y,startx,starty,index,tmp
@@ -722,7 +737,7 @@ procedure gui_inv_slots_create()
 	  index=inv[i][1]
 	  inv_slot_buttons&=button_new( startx+x, starty+ y, 40, 40,index,i)
 	else
-	  inv_slot_buttons&=button_new( startx+x, starty+ y, 40, 40,-1,-1)
+	  inv_slot_buttons&=button_new( startx+x, starty+ y, 40, 40,-1,i)
     end if
 
 	x+=44
@@ -734,13 +749,37 @@ procedure gui_inv_slots_create()
 	  
 	
   end for
+  
+  x=0
+  y+=44
+  
+  for i=13 to 20 do 
+  
+    if inv[i][1]!=-1 then
+	  index=inv[i][1]
+      tmp=button_new( startx+x, starty+ y, 40, 40,index,i)
+	  inv_slot_buttons&=tmp
+      button_set_visable(tmp,0)
+	else
+	  tmp=button_new( startx+x, starty+ y, 40, 40,-1,i)
+	  inv_slot_buttons&=tmp
+      button_set_visable(tmp,0)
+	end if
+	
+	x+=44
+	
+	if i=16 or i=20 then
+      y+=44
+      x=0
+    end if
+  end for
 end procedure 
 
  gui_inv_slots_create()
 
 
 procedure gui_draw_inv_slots2()
-  integer x ,y,index,item,slot,startx,starty
+  integer x ,y,index,item,slot,startx,starty,val
   
   --610
   --370
@@ -780,6 +819,30 @@ procedure gui_draw_inv_slots2()
 
   end for
   
+  x=0
+  y+=44
+  if lootbag_enabled=1 then
+  for i=13 to 20 do
+   
+    draw_set_color(84,84, 84)
+    draw_rectangle(startx+x,starty+y, startx+40+x,starty+40+y, 0)
+    
+    currentfont=font2
+    draw_set_color(54,54,54)
+     val=button_get_visable(inv_slot_buttons[i])
+    if inv[i][1]=-1 or selected=i  then
+      draw_text(startx+x+8,starty+y,sprint(i-12))
+    end if
+	
+	x+=44
+
+    if i=16 then
+      y+=44
+      x=0
+    end if
+
+  end for
+  end if
    button_draw()
 
   
@@ -1276,6 +1339,7 @@ gl_color4f({1, 1,1, 1})
   --player_name_draw()
   projectile_update_new() 
    projectile_enemy_update_new()
+   lootbag_draw()
 
   
   for i = 1 to length(enemy_list) do
@@ -1288,6 +1352,8 @@ gl_color4f({1, 1,1, 1})
     end for
 	
 	draw_enemy_health_bars()
+	
+	
 
 
 
@@ -1392,6 +1458,7 @@ end if
       --usleep((TARGET_FRAME_MS - floor(deltatime)) )  -- convert ms → µs
     end if
 
+   
   
 end procedure
 
@@ -1568,8 +1635,8 @@ else
         end if
     end for  
 	
-	--grid_check_chunk_integrity()
 
+   lootbag_check()
   euglTimerFunc(30,loop_id,0)
 end procedure
 loop_id = routine_id("loop")
@@ -1591,6 +1658,12 @@ integer ret
 	         --ret=enemy_new(1020, 1020, 100.0, 0.1, 5) 
 		     ret=enemy_new(camera_x, camera_y, 100.0, 0.1, 5) 
            end if
+		   if key_check('Q')  then
+		     ret=lootbag_new(player_x, player_y,{#C03,equip_get_random( ),equip_get_random( ),equip_get_random( ), equip_get_random( ),-1,-1, -1} )
+			 puts(1,"lootbag create\n")
+			 ?equip_get_random( )
+			 
+		   end if
         else
          key_remove(keycode)
         end if

@@ -141,8 +141,6 @@ echo xmlall_0.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s xmlall_0.c
 echo projectilexml.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s projectilexml.c
-echo button.c
-wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s button.c
 echo wmap.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s wmap.c
 echo zlib.c
@@ -151,6 +149,10 @@ echo input_stream.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s input_stream.c
 echo player.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s player.c
+echo button.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s button.c
+echo lootbag.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s lootbag.c
 echo grid.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s grid.c
 echo enemy.c
@@ -237,11 +239,12 @@ del equipxml.c
 del xmlall.c
 del xmlall_0.c
 del projectilexml.c
-del button.c
 del wmap.c
 del zlib.c
 del input_stream.c
 del player.c
+del button.c
+del lootbag.c
 del grid.c
 del enemy.c
 del init-0.c

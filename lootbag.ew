@@ -1,0 +1,174 @@
+sequence class_list,class_freelist,lootbag_freelist
+class_list={}
+class_freelist={}
+lootbag_freelist={}
+
+
+
+
+global constant lootbag_x = 1
+global constant lootbag_y = 2
+global constant lootbag_items = 3
+global constant lootbag_runouttimer = 4
+global constant lootbag_set = 5
+
+
+global function lootbag_new(atom x, atom y, sequence items)
+  integer handle
+  if length(class_freelist)>0 then
+    handle= class_freelist[1]
+    class_freelist = class_freelist[2..length(class_freelist)]
+  else
+    class_list= append(class_list,{})
+	lootbag_freelist= append(lootbag_freelist,{})
+    handle=length(class_list)
+  end if
+
+  class_list[handle]={0,0,{},current_time()+20*1000,0}
+  lootbag_freelist[handle]={}
+  
+  class_list[handle][lootbag_x]=x
+  class_list[handle][lootbag_y]=y
+  class_list[handle][lootbag_items]=items
+  class_list[handle][lootbag_set]=0
+  
+  return handle
+end function
+
+include inv.ew
+
+global procedure lootbag_delete(integer handle)
+  class_list[handle]={}
+  lootbag_freelist[handle]={}
+  class_freelist =append(class_freelist, handle)
+end procedure
+
+global procedure lootbag_check()
+   integer found
+   atom x,y, dx, dy, dist
+   sequence items
+   lootbag_enabled=0
+   
+   found=0
+   for i=1 to length(class_list) do
+     if length(class_list[i])>0 then
+	   
+       x=class_list[i][lootbag_x]
+       y=class_list[i][lootbag_y]
+	   items=class_list[i][lootbag_items]
+	   
+	   -- Calculate distance to player
+       dx = player_x - x
+       dy = player_y - y
+       dist = sqrt(dx * dx + dy * dy)
+	   if dist<1 then  --player on top of loot bag
+	     lootbag_enabled=1
+		 if class_list[i][lootbag_set]=0 then
+		 for j=1 to length(items) do
+		     inv[12+j][1]=items[j]
+		     button_set_index(inv_slot_buttons[12+j],items[j])
+		 end for
+		 lootbag_enable_id=i
+		 class_list[i][lootbag_set]=1
+		 class_list[i][lootbag_runouttimer]=current_time()+20*1000
+		 end if
+	   else
+	     class_list[i][lootbag_set]=0
+	   end if
+	   
+	   if current_time()>class_list[i][lootbag_runouttimer] then
+	     lootbag_delete(i)
+	   end if
+	   
+	   
+	   if lootbag_enabled=1 then
+	   for j=1 to length(items) do
+	     if items[j]!=-1 then
+		   found=1
+		 end if
+	   end for
+	   if found=0 then --empty loot bag
+	     lootbag_delete(i)
+		 lootbag_enabled=0
+		 exit
+	   end if
+	   end if
+	   
+	 
+	 end if
+   end for
+end procedure
+
+
+global procedure lootbag_draw()
+   atom x,y, dx, dy, dist
+   integer spr,frame
+   
+   
+   for i=1 to length(class_list) do
+     if length(class_list[i])>0 then
+	   
+       x=class_list[i][lootbag_x]
+       y=class_list[i][lootbag_y]
+	   
+	   -- Calculate distance to player
+       dx = player_x - x
+       dy = player_y - y
+       dist = sqrt(dx * dx + dy * dy)
+	   if dist<12 then  
+	     spr=object_delta_mod(1289,object_sprite)
+		 frame=object_delta_mod(1289,object_indexx)
+		 
+		 draw_spritesheet_floor(x, y, 1 ,spr, frame) 
+	   end if
+	 
+	 end if
+   end for
+end procedure
+
+
+
+
+global function lootbag_get_list(integer handle)
+  return class_list[handle]
+end function
+
+global function lootbag_get_free_size(integer handle)
+  return length(lootbag_freelist[handle])
+end function
+
+
+global function lootbag_get_freelist(integer handle)
+  return lootbag_freelist[handle]
+end function
+
+
+global function lootbag_get_x(integer handle)
+  return class_list[handle][lootbag_x]
+end function
+
+global function lootbag_get_y(integer handle)
+  return class_list[handle][lootbag_y]
+end function
+
+global function lootbag_get_totalnumber()
+  return length(class_list)
+end function
+
+global function lootbag_get_items(integer handle)
+  return class_list[handle][lootbag_items]
+end function
+
+global procedure lootbag_set_x(integer handle, atom x)
+  class_list[handle][lootbag_x]=x
+end procedure
+
+global procedure lootbag_set_items(integer handle, sequence items)
+  class_list[handle][lootbag_items]=items
+end procedure
+
+global procedure lootbag_set_y(integer handle, atom y)
+  class_list[handle][lootbag_y]=y
+end procedure
+
+
