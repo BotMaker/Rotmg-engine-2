@@ -1,7 +1,10 @@
+{done
 add 8 more inventory slots to button class make them invisible 
 add loot bag
 only when a the player is over a loot bag do you make the 8 more inventory slots invisible and usable
 get enemy to drop loot bags after death loot drops
+}
+
 equipment that can shoot bullet that can hit multiple targets by going through the enemy's instead of using the exit button when projectile hits a enemy make sure not delete the projectile if it multiple targets
 could add a arrow to point in the direction of the nearest enemy to the player
 

@@ -138,7 +138,7 @@ global procedure button_draw()
 		height=class_list[i][button_height]
         index=class_list[i][button_index]
 		visable=class_list[i][button_isvisable]
-		if index!=-1 and i!=selected then
+		if index!=-1 and i!=selected and equip_delta_mod(index,equip_sprite)!=0 then
 		  draw_spritesheet_texture_ext(class_list[i][button_x]+3,class_list[i][button_y]+3,equip_delta_mod(index,equip_sprite),  equip_delta_mod(index,equip_indexx),34,34)
 		end if
 	  end if
@@ -224,7 +224,7 @@ global procedure button_mouse_released(integer mx, integer my)
 	-- If released outside GUI area (e.g. to the left of 610px)
     if released_inside = 0 and selected > 0 then
         if mx < 610 then
-		    if lootbag_enabled= 1 then 
+		    if lootbag_enabled= 1 and selected >= 12 then 
 			  --need to remove item from lootbag
 			  items=lootbag_get_items(lootbag_enable_id)
 			   items[selected-12]=-1

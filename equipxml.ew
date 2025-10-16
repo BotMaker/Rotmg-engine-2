@@ -340,7 +340,12 @@ global function equip_get_random( )
 	 end if
    end for 
    r=rand(length(list))
+   
+   if equip_delta_mod( list[r], equip_indexx)<1 then
+     return -1
+   else
    return list[r]
+   end if
 end function
 
 
