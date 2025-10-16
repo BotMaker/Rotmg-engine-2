@@ -65,6 +65,8 @@ echo font.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s font.c
 echo extra.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s extra.c
+echo base64.c
+wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s base64.c
 echo hash.c
 wcc386 /bt=nt /mf /w0 /zq /j /zp4 /fp5 /fpi87 /5r /otimra /s hash.c
 echo objects.c
@@ -201,6 +203,7 @@ del texture.c
 del spritesheet.c
 del font.c
 del extra.c
+del base64.c
 del hash.c
 del objects.c
 del projectile.c

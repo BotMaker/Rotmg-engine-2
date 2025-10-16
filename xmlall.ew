@@ -214,6 +214,7 @@ function object_index(sequence name)
   end for	
 end function
 
+
 global constant object_speed=object_index("Speed")
 global constant object_lifetime=object_index("LifetimeMS")
 global constant object_numprojectiles=object_index("NumProjectiles")

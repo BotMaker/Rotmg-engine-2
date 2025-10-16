@@ -41,8 +41,11 @@ global function input_stream_slice(integer handle, integer pos1, integer pos2)
   return class_list[handle][input_buffer][pos1..pos2]
 end function 
 
+integer pos
+pos=1
 global procedure input_stream_set(integer handle,sequence data)
   class_list[handle][input_buffer]=data
+  pos=1
 end procedure
 
 global function input_stream_get(integer handle)
@@ -50,17 +53,13 @@ global function input_stream_get(integer handle)
 end function 
 
 
-global function input_stream_readutf(integer handle)
-  integer len
-  sequence temp
-  len=bytes_to_int( {class_list[handle][input_buffer][2],class_list[handle][input_buffer][1],0,0} )+2
-  temp=class_list[handle][input_buffer][3..len]
-  class_list[handle][input_buffer]=class_list[handle][input_buffer][len+1..length(class_list[handle][input_buffer])]
-  return temp
-end function
+global procedure input_stream_rest_pos()
+  pos=1
+end procedure
 
-integer pos
-pos=1
+global function input_stream_get_pos(integer handle)
+  return pos
+end function
 
 global function input_stream_readint(integer handle)
   atom v
@@ -99,8 +98,12 @@ global function input_stream_readbyte(integer handle)
   temp=class_list[handle][input_buffer][pos]
   pos+=1
   --class_list[handle][input_buffer]=class_list[handle][input_buffer][2..length(class_list[handle][input_buffer])]
+  
   return temp
 end function
+
+
+
 
 global function input_stream_readbool(integer handle)
   integer temp
@@ -109,3 +112,41 @@ global function input_stream_readbool(integer handle)
   class_list[handle][input_buffer]=class_list[handle][input_buffer][2..length(class_list[handle][input_buffer])]
   return and_bits(temp,#1)
 end function
+
+-- Returns the value of the lower 7 bits of a byte
+global function read_7bits(atom byte)
+    -- #7F = 0111 1111 in binary (mask for lower 7 bits)
+    return and_bits(byte, #7F)
+end function
+
+global function input_stream_readutf(integer handle)
+    integer len
+    sequence temp
+
+
+    len =read_7bits( input_stream_readbyte(handle)) 
+	
+    -- If length = 0, return empty string but DO NOT skip reading
+    if len <= 0 then
+	    
+        return ""
+    end if
+
+    -- read 'len' bytes of string data
+    temp = class_list[handle][input_buffer][pos .. pos + len - 1]
+    pos += len
+
+    return temp
+end function
+
+
+
+
+
+
+
+
+
+
+
+

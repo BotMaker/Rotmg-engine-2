@@ -1,0 +1,317 @@
+include zlib.e
+include misc.e
+without warning
+
+include input_stream.ew
+
+integer input
+input=input_stream_new()
+
+include tinyxml.ew
+global atom doc
+doc= tinyxml_document()
+include "xmlall.ew"
+
+include groundxml.ew
+
+
+
+
+integer comprLen, uncomprLen
+atom compr, uncompr
+comprLen = 1024*1024*20 --max map size in bytes width and height 
+uncomprLen = comprLen
+
+
+procedure CHECK_ERR(integer err, sequence msg)
+    if err != Z_OK then
+        printf(2, "%s Error: %d\n", {msg, err})
+		machine_proc(26, 0)
+        abort(1)
+    end if
+end procedure
+
+procedure test_deflate(sequence data,atom compr, integer comprLen)
+	z_streamp c_stream -- compression stream
+	integer err, len
+	atom lphello
+
+	lphello = allocate_string(data)
+	len = length(data) + 1
+
+	c_stream = z_stream(0)
+	-- Pointless, really, because it is already set to null...
+	poke4(c_stream + Zalloc, 0)
+	poke4(c_stream + Zfree, 0)
+	poke4(c_stream + Zopaque, 0)
+
+	err = deflateInit(c_stream, Z_DEFAULT_COMPRESSION)
+	CHECK_ERR(err, "deflateInit")
+
+	poke4(c_stream + Znext_in, lphello)
+	poke4(c_stream + Znext_out, compr)
+
+	while (peek4u(c_stream + Ztotal_in) != len) and
+			(peek4u(c_stream + Ztotal_out) < comprLen) do
+		-- Force Small Buffers
+		poke4(c_stream + Zavail_in, 1)
+		poke4(c_stream + Zavail_out, 1)
+		err = deflate(c_stream, Z_NO_FLUSH)
+		CHECK_ERR(err, "deflate")
+	end while
+	-- Finish the stream, still forcing small buffers:
+	while 1 do
+		poke4(c_stream + Zavail_out, 1)
+		err = deflate(c_stream, Z_FINISH)
+		if err = Z_STREAM_END then
+			exit
+		end if
+		CHECK_ERR(err, "deflate")
+	end while
+
+	err = deflateEnd(c_stream)
+	CHECK_ERR(err, "deflateEnd")
+	free(lphello)
+end procedure
+
+procedure test_inflate(atom compr, integer comprLen)
+	integer err, len
+	z_streamp d_stream -- decompression stream
+	d_stream = z_stream(0)
+
+	poke(uncompr, "garbage" & 0)
+
+	poke4(d_stream + Zalloc, 0)
+	poke4(d_stream + Zfree, 0)
+	poke4(d_stream + Zopaque, 0)
+
+	poke4(d_stream + Znext_in, compr)
+	poke4(d_stream + Zavail_in, 0)
+	poke4(d_stream + Znext_out, uncompr)
+
+	err = inflateInit(d_stream)
+	CHECK_ERR(err, "inflateInit")
+
+    len = 0
+    while (peek4u(d_stream + Ztotal_out) < uncomprLen) and (peek4u(d_stream + Ztotal_in) < comprLen) do
+		-- Force Small Buffers
+		poke4(d_stream + Zavail_in, 1)
+		poke4(d_stream + Zavail_out, 1)
+        err = inflate(d_stream, Z_NO_FLUSH)
+		if err = Z_STREAM_END then
+			exit
+		end if
+		CHECK_ERR(err, "inflate")
+           len+=1
+       
+	end while
+
+	err = inflateEnd(d_stream)
+	CHECK_ERR(err, "inflateEnd")
+
+	
+        uncomprLen=len
+
+end procedure
+
+
+
+
+
+function find_all(sequence text, sequence pattern)
+    sequence results
+    integer  plen
+
+    results = {}
+    plen = length(pattern)
+
+    for i = 1 to length(text) - plen + 1 do
+        if compare(text[i..i+plen-1], pattern) = 0 then
+            results = append(results, i)
+        end if
+    end for
+
+    return results
+end function
+
+
+function extract_values(sequence text, sequence key)
+    sequence values, matches
+    integer  pos1, pos2, start
+
+    values = {}
+    matches = find_all(text, "\"" & key & "\":\"")
+
+    for i = 1 to length(matches) do
+        start = matches[i] + length(key) + 4
+        pos1 = start
+        pos2 = pos1
+
+        while pos2 <= length(text) and text[pos2] != '"' do
+            pos2 += 1
+        end while
+
+        if pos2 <= length(text) then
+            values = append(values, text[pos1..pos2-1])
+        end if
+    end for
+
+    return values
+end function
+
+function extract_tiles(sequence text)
+    sequence tiles
+    integer start, stop
+    sequence tile_text
+    sequence ground, objs, regions
+    integer width, height, val_result
+    sequence data_value, wv, hv, dv
+
+    tiles = {}
+    width = 0
+    height = 0
+    data_value = ""
+
+    -- find start of each { inside "dict":[ ... ]
+    for i = 1 to length(text) - 1 do
+        if text[i] = '{' then
+            start = i
+            -- find the matching }
+            stop = start + 1
+            while stop <= length(text) and text[stop] != '}' do
+                stop += 1
+            end while
+
+            tile_text = text[start..stop]
+
+            -- extract "ground"
+            ground = extract_values(tile_text, "ground")
+
+            -- extract all object IDs
+            objs = extract_values(tile_text, "id")
+
+            -- extract region IDs
+            regions = extract_values(tile_text, "regions")
+
+            if length(ground) = 0 then
+                ground = {"none"}
+            end if
+
+            tiles = append(tiles, {ground[1], objs, regions})
+        end if
+    end for
+
+    -- extract width, height, and data from the full JSON text
+   
+    wv = extract_values(text, "width")
+    hv = extract_values(text, "height")
+    dv = extract_values(text, "data")
+
+    if length(wv) > 0 then
+        val_result = value(wv[1])
+        if atom(val_result) = 0 and length(val_result) >= 2 then
+            width = val_result[2]
+        end if
+    end if
+
+    if length(hv) > 0 then
+        val_result = value(hv[1])
+        if atom(val_result) = 0 and length(val_result) >= 2 then
+            height = val_result[2]
+        end if
+    end if
+
+    if length(dv) > 0 then
+        data_value = dv[1]
+    end if
+
+    return {tiles, width, height, data_value}
+end function
+
+
+
+
+
+global procedure json_load(sequence fname)
+    integer fn,width, height,x,y
+	integer count,t,terrain,region,obj_type,byte1,byte2,byte3,byte4
+    sequence text,tile
+    sequence tiles,data 
+    object ch
+	
+
+    fn = open(fname, "r")
+    if fn = -1 then
+        puts(1, "Error: map.json not found\n")
+        --abort(1)
+    end if
+
+    text = ""
+    while 1 do
+        ch = gets(fn)
+        if atom(ch) then
+            exit
+        end if
+        text &= ch
+    end while
+	close(fn)
+	
+  compr = allocate(comprLen)
+  uncompr = allocate(uncomprLen)
+  mem_set(compr, 0, comprLen)
+  mem_set(uncompr, 0, uncomprLen)
+	
+
+
+    tiles = extract_tiles(text)
+
+    --printf(1, "Found %d tiles\n", length(tiles))
+    --puts(1, "Example tile:\n")
+	
+	
+    width = tiles[2]
+    height = tiles[3]
+	
+	
+	
+
+	
+	tiles[4]=fromBase64(tiles[4])
+	
+	
+	for i=1 to length(tiles[4]) do
+	  poke(compr+(i-1),tiles[4][i])
+	end for
+	
+	test_inflate(compr, comprLen)
+    data=peek({uncompr,uncomprLen})
+	puts(1,"zlib worked\n")
+	?length(data)
+	
+	input_stream_set(input,data)
+	input_stream_rest_pos()
+	
+	puts(1,"map loading\n") 
+	for i=1 to length(data) by 2 do
+	--for yy=1 to height  do
+	---for xx=1 to width  do
+	  byte1=input_stream_readbyte(input)
+	  byte2=input_stream_readbyte(input)
+	  count=byte2*256+byte1
+	  
+	  
+	  if count!=0 then
+	    puts(1,object_delta_mod(count,object_idd)&"\n")
+	    --puts(1,ground_delta(count,ground_idd)&"\n")
+	  end if
+	--end for
+	--end for
+	end for
+	
+
+	
+	 
+
+	
+	
+end procedure

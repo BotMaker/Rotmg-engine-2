@@ -53,6 +53,7 @@ global constant ground_file=ground_index("File")
 global constant ground_indexx=ground_index("Index")
 --extra data
 global constant ground_sprite=ground_index("Sprite")
+global constant ground_idd=ground_index("id")
 
 
 

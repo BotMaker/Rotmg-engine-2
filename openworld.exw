@@ -6,6 +6,7 @@ include winbmp.ew
 include misc.e
 include database.e
 include light.ew
+include base64.ew
 
 global atom camera_x,camera_y,camera_z,camera_yaw
 camera_yaw=90
@@ -64,13 +65,22 @@ global sequence walkable,obstacle
 walkable={}
 obstacle={}
 
-
+global sequence mapdata,objectdata,sizedata,sprdata,framedata
+mapdata={}
+objectdata={}
+sizedata={}
+sprdata={}
+framedata={}
 
 global integer lootbag_enabled,lootbag_enable_id
 lootbag_enabled=0
 lootbag_enable_id=0
+global integer map_width,map_height
+map_width=0
+map_height=0
 
 include wmap.ew
+include json.ew
 
 global function speed_ground(atom x, atom y)
 atom speed_mut
@@ -121,9 +131,12 @@ include enemy.ew
 
 
 procedure map_load()
-  --wmap_load("map.wmap")
-  --wmap_load("nexus.wmap")
+  wmap_load("map.wmap")
+  wmap_load("nexus.wmap")
+  --wmap_load_2("nexus2.wmap")
   wmap_load("world1.wmap")
+  --wmap_load_2("world2.wmap")
+  --json_load("map.jm")
   obstacle=objectdata
 
   player_x=floor(map_width/2)

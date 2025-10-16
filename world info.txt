@@ -1,0 +1,110 @@
+public void loadEditor(WorldData obj,String data, ClientHandler ch) throws FileNotFoundException 
+	{
+      
+      this.width=obj.width;
+      this.height=obj.height;
+      this.mapData = new int[width][height];
+      
+      objects.clear();
+      drops.clear();
+      enemys.clear();
+      ch.clearlist();
+		
+      byte [] data2;
+	  data2=data.getBytes();
+      int i,xx=0,yy=0,index;
+      String objid;
+      WorldDataObject wdo;
+        
+        for(i=0;i<data2.length;i+=2)
+        {
+          
+           index=(short) ((data2[i] << 8) + (data2[i+1] << 0));
+           //System.out.println(index);
+           //System.out.println(obj.dict.get(index));
+           wdo=obj.dict.get(index);
+           
+           if (wdo.ground!=null)
+           {
+        	  for (int temp = 0; temp < groundList.getLength(); temp++)
+   		      {
+   			    Node nNode = groundList.item(temp);
+   			    if (nNode.getNodeType() == Node.ELEMENT_NODE) 
+   			    {
+   	 
+   				  Element eElement = (Element) nNode;
+   	              if  ((eElement.getAttribute("id").equals(wdo.ground)) )
+   	              {
+   	            	mapData[xx][yy]=Integer.parseInt( eElement.getAttribute("type").substring(2) ,16);
+   	            	break;
+   	              }
+   	 
+   			    }
+   		      }
+           }
+           
+           if (wdo.objs!=null)
+ 		   {
+             for (int temp = 0; temp < objectList.getLength(); temp++)
+ 			 {
+ 			   Node nNode = objectList.item(temp);
+ 			   if (nNode.getNodeType() == Node.ELEMENT_NODE) 
+ 			   {
+ 		         Element eElement = (Element) nNode;
+ 			     //System.out.println(wdo.objs.get(0).toString().substring(4,wdo.objs.get(0).toString().length()-1 ));
+ 		         //System.out.println("1" + eElement.getAttribute("id"));
+ 			     objid=wdo.objs.get(0).toString().substring(4,wdo.objs.get(0).toString().length()-1 );
+ 			     //System.out.println("2" + objid);
+ 		         if  (eElement.getAttribute("id").equals(objid) )
+ 		         {
+ 		        	//System.out.println("found");
+ 		            ObjectStatus os = new ObjectStatus();
+ 					os.objectType = Integer.parseInt( eElement.getAttribute("type").substring(2) ,16);;
+ 					os.objStatData.objectId = objectIdCounter.getAndIncrement();
+ 					//os.objStatData.position = new Location(xx, yy);
+ 					os.objStatData.position = new Location((float)(xx+0.5), (float)(yy+0.5));//Due to centering of the tile!
+ 					this.objects.add(os);
+ 					
+ 					ch.map_ediotr_create_enemy(os);
+ 					
+ 					//enemys.add(os);
+ 					//break;
+ 		         }
+ 		        }
+ 			  } 
+ 		    }
+           
+           
+           if (wdo.regions!=null)
+ 		   {
+             for (int temp = 0; temp < regionList.getLength(); temp++)
+ 			 {
+ 			   Node nNode = regionList.item(temp);
+ 			   if (nNode.getNodeType() == Node.ELEMENT_NODE) 
+ 			   {
+ 		         Element eElement = (Element) nNode;
+ 			     System.out.println(wdo.regions.get(0).toString().substring(4,wdo.regions.get(0).toString().length()-1 ));
+ 			     objid=wdo.regions.get(0).toString().substring(4,wdo.regions.get(0).toString().length()-1 );
+ 		         if  (eElement.getAttribute("id").equals(objid) )
+ 		         {
+ 		           if (objid.equals("Spawn")==true)
+ 		           {
+ 		        	 ch.editorx=xx;
+ 		        	 ch.editory=yy;
+ 		        	 break;
+ 		           }
+ 		         }
+ 		        }
+ 			  } 
+ 		    }
+           
+           xx+=1;
+   	       if (xx>=width)
+   	       {
+   		     yy+=1;
+   		     xx=0;
+   	       }
+        }
+		
+      
+	}

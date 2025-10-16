@@ -12,21 +12,12 @@ global atom doc
 doc= tinyxml_document()
 include "xmlall.ew"
 
-global integer map_width,map_height
-map_width=0
-map_height=0
 
-global sequence mapdata,objectdata,sizedata,sprdata,framedata
-mapdata={}
-objectdata={}
-sizedata={}
-sprdata={}
-framedata={}
 
 
 integer comprLen, uncomprLen
 atom compr, uncompr
-comprLen = 1024*1024*20 --max map size in bytes width and height 
+comprLen = 2024*2024*20 --max map size in bytes width and height 
 uncomprLen = comprLen
 
 
@@ -38,48 +29,7 @@ procedure CHECK_ERR(integer err, sequence msg)
     end if
 end procedure
 
-procedure test_deflate(sequence data,atom compr, integer comprLen)
-	z_streamp c_stream -- compression stream
-	integer err, len
-	atom lphello
 
-	lphello = allocate_string(data)
-	len = length(data) + 1
-
-	c_stream = z_stream(0)
-	-- Pointless, really, because it is already set to null...
-	poke4(c_stream + Zalloc, 0)
-	poke4(c_stream + Zfree, 0)
-	poke4(c_stream + Zopaque, 0)
-
-	err = deflateInit(c_stream, Z_DEFAULT_COMPRESSION)
-	CHECK_ERR(err, "deflateInit")
-
-	poke4(c_stream + Znext_in, lphello)
-	poke4(c_stream + Znext_out, compr)
-
-	while (peek4u(c_stream + Ztotal_in) != len) and
-			(peek4u(c_stream + Ztotal_out) < comprLen) do
-		-- Force Small Buffers
-		poke4(c_stream + Zavail_in, 1)
-		poke4(c_stream + Zavail_out, 1)
-		err = deflate(c_stream, Z_NO_FLUSH)
-		CHECK_ERR(err, "deflate")
-	end while
-	-- Finish the stream, still forcing small buffers:
-	while 1 do
-		poke4(c_stream + Zavail_out, 1)
-		err = deflate(c_stream, Z_FINISH)
-		if err = Z_STREAM_END then
-			exit
-		end if
-		CHECK_ERR(err, "deflate")
-	end while
-
-	err = deflateEnd(c_stream)
-	CHECK_ERR(err, "deflateEnd")
-	free(lphello)
-end procedure
 
 procedure test_inflate(atom compr, integer comprLen)
 	integer err, len
@@ -170,9 +120,10 @@ temp={}
 end function
 
 
-global procedure wmap_load(sequence fname)
-  integer fn, char,pos
-  sequence list,name,obj
+
+global procedure wmap_load_2(sequence fname)
+  integer fn, char,pos,ver
+  sequence list,name,obj,stream
   integer size
   integer count,t,width,height,terrain,region,obj_type
   sequence data
@@ -194,18 +145,155 @@ global procedure wmap_load(sequence fname)
       exit
     end if
     data&=char
-    poke(compr+pos,char)
+    
     pos+=1
   end while
 
-
   close(fn)
+  ver=data[1]
+  puts(1,"version: "&sprint(ver)&" \n")
+  
+  
+  pos=0
+  for i=2 to length(data) do
+    poke(compr+pos,data[i])
+	pos+=1
+  end for
 
   test_inflate(compr, comprLen)
 
 
   data=peek({uncompr,uncomprLen})
   input_stream_set(input,data)
+
+  free(compr)
+  free(uncompr)
+
+  --map loading 
+  count=input_stream_readshort(input)
+  --puts(1,"count\n")
+  --?count 
+
+  if ver=2 then
+  
+     fn=open("text.txt","w")
+  
+  
+    t=input_stream_readshort(input)
+	for i=1 to t-1 do
+	   terrain=input_stream_readshort(input)
+	   obj=input_stream_readutf(input)
+	   puts(fn, "input_stream_readutf length: "&sprint(length(obj))&"\n" )
+	   puts(fn,obj&"\n")
+	   obj=input_stream_readutf(input)
+	   puts(fn, "input_stream_readutf length: "&sprint(length(obj))&"\n" )
+	   puts(fn,obj&"\n")
+	   terrain=input_stream_readbyte(input)
+	   terrain=input_stream_readbyte(input)
+	end for
+	
+	close(fn)
+
+	width=input_stream_readint(input)
+
+    height=input_stream_readint(input)
+	
+	for y=1 to height do
+      for x=1 to width do
+	    terrain=input_stream_readshort(input)
+		terrain=input_stream_readbyte(input)
+	  end for
+	end for
+
+   -- obj_type=object_type_from_name(obj)
+
+    
+
+  end if
+  puts(1,"input length: "&sprint(input_stream_length(input))&"  width: "&sprint(width)&" height: "&sprint(height)&"\n")
+
+
+  map_width=width
+  map_height=height
+  
+  
+
+  mapdata={}
+  objectdata={}
+  sizedata={}
+  sprdata={}
+  framedata={}
+
+  for y=1 to map_height do
+    mapdata=append(mapdata,repeat(0,map_width))
+    objectdata=append(objectdata,repeat(0,map_width))
+    sizedata=append(sizedata,repeat(0,map_width))
+	sprdata=append(sprdata,repeat(0,map_width))
+	framedata=append(framedata,repeat(0,map_width))
+  end for
+
+  for y=0 to height-1 do
+    for x=0 to width-1 do
+      v=input_stream_readshort(input)
+      mapdata[y+1][x+1]=list[v+1][1]
+      objectdata[y+1][x+1]=list[v+1][2]
+      sizedata[y+1][x+1]=list[v+1][3]
+	  sprdata[y+1][x+1]=ground_delta_mod(list[v+1][1], ground_sprite)
+	  framedata[y+1][x+1]= ground_delta_mod(list[v+1][1], ground_indexx)
+    end for
+  end for
+  
+end procedure 
+
+
+
+
+
+global procedure wmap_load(sequence fname)
+  integer fn, char,pos
+  sequence list,name,obj
+  integer size
+  integer count,t,width,height,terrain,region,obj_type
+  sequence data
+  integer v
+  pos=0
+  data={}
+  list={}
+  
+  comprLen = 2024*2024*20 --max map size in bytes width and height 
+  uncomprLen = comprLen
+
+  compr = allocate(comprLen)
+  uncompr = allocate(uncomprLen)
+  mem_set(compr, 0, comprLen)
+  mem_set(uncompr, 0, uncomprLen)
+
+  fn=open(fname,"rb")
+
+  while 1 do
+  char=getc(fn)
+    if char=-1 then
+      exit
+    end if
+    data&=char
+    poke(compr+pos,char)
+    pos+=1
+  end while
+
+  
+  close(fn)
+  
+  
+
+  test_inflate(compr, comprLen)
+
+  puts(1,"length data\n")
+  data=peek({uncompr,uncomprLen})
+  
+  ?length(data)
+  ?uncomprLen
+  input_stream_set(input,data)
+  input_stream_rest_pos()
 
   free(compr)
   free(uncompr)
@@ -266,6 +354,8 @@ global procedure wmap_load(sequence fname)
 	  framedata[y+1][x+1]= ground_delta_mod(list[v+1][1], ground_indexx)
     end for
   end for
+  
+  comprLen = 2024*2024*20
   
 end procedure 
 
