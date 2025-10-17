@@ -1,6 +1,6 @@
-C:\Users\garet\Desktop\Rotmg-game-engine-master\ROTMG (engine) alpha\open world.exw:1377
-Syntax error - expected to see possibly ')', not ']'
-			   draw_spritesheet_floor(ex, ey, 1, sprite,enemy_list[i][ ENEMY_FRAMEINDEX]])
-			                                                                            ^
+C:\Users\garet\Desktop\Rotmg-game-engine-master\ROTMG (engine) alpha\open world.exw:1278
+Syntax error - expected to see possibly ']', not ','
+			   list=append(list,{pos,enemy_list[ehandle][ENEMY_HEALTH, enemy_list[ehandle][ENEMY_MAXHEALTH]})
+			                                                         ^
 
 

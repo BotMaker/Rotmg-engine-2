@@ -190,7 +190,8 @@ function projectile_new()
 {"Frequency",0},
 {"Wavy",0},
 {"Boomerang",0},
-{"Size",0}
+{"Size",0},
+{"Damage",0}
   }
 end function
 
@@ -221,6 +222,7 @@ global constant object_numprojectiles=object_index("NumProjectiles")
 global constant object_arcgap=object_index("ArcGap")
 global constant object_amplitude=object_index("Amplitude")
 global constant object_frequency=object_index("Frequency")
+global constant object_damage=object_index("Damage")
 global constant object_wavy=object_index("Wavy")
 global constant object_parametric=object_index("Parametric")
 --global constant equip_magnitude=object_index("Magnitude")
@@ -236,6 +238,8 @@ global constant object_rateoffire=object_index("RateOfFire")
 global constant object_mindamage=object_index("MinDamage")
 global constant object_mpcost=object_index("MpCost")
 global constant object_activate=object_index("Activate")
+
+global constant object_maxhitpoints =object_index("MaxHitPoints")
 
 global constant object_file=object_index("File")
 global constant object_indexx=object_index("Index")
