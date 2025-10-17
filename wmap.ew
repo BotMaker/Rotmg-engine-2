@@ -180,7 +180,7 @@ global procedure wmap_load_2(sequence fname)
   
   
     t=input_stream_readshort(input)
-	for i=1 to t-1 do
+	for i=1 to t do
 	   terrain=input_stream_readshort(input)
 	   obj=input_stream_readutf(input)
 	   puts(fn, "input_stream_readutf length: "&sprint(length(obj))&"\n" )
@@ -287,11 +287,9 @@ global procedure wmap_load(sequence fname)
 
   test_inflate(compr, comprLen)
 
-  puts(1,"length data\n")
+
   data=peek({uncompr,uncomprLen})
   
-  ?length(data)
-  ?uncomprLen
   input_stream_set(input,data)
   input_stream_rest_pos()
 

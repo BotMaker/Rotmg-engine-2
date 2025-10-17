@@ -11,6 +11,12 @@ global constant projectile_bullet_id = 5
 global constant projectile_type = 6
 global constant projectile_light = 7
 
+global procedure projectile_init()
+class_list={}
+class_freelist={}
+projectile_freelist={}
+end procedure 
+
  integer total_classes, total_projectiles, total_free
  
  total_classes = length(class_list)

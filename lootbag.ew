@@ -12,6 +12,12 @@ global constant lootbag_items = 3
 global constant lootbag_runouttimer = 4
 global constant lootbag_set = 5
 
+global procedure lootbag_init()
+class_list={}
+class_freelist={}
+lootbag_freelist={}
+end procedure 
+
 
 global function lootbag_new(atom x, atom y, sequence items)
   integer handle

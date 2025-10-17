@@ -11,6 +11,13 @@ class_freelist = {}
 enemy_freelist = {}
 projectile_enemy_list = projectile_enemy_new()
 
+global procedure enemy_init()
+  enemy_list = {}
+  class_freelist = {}
+  enemy_freelist = {}
+  
+end procedure
+
 
 integer active, free_count, total
     active = 0

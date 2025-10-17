@@ -11,6 +11,7 @@ global constant projectile_enemy_bullet_id = 5
 global constant projectile_enemy_type = 6
 global constant projectile_enemy_light = 7
 
+
 global function projectile_enemy_new()
   integer handle
   if length(class_freelist)>0 then
@@ -27,6 +28,12 @@ global function projectile_enemy_new()
 
   return handle
 end function
+
+global procedure projectile_enemy_init()
+class_list={}
+class_freelist={}
+projectile_enemy_freelist={}
+end procedure 
 
 global function projectile_enemy_enter(integer handle,atom x, atom y, atom angle, atom start_time, integer  bullet_id, integer ctype, integer light)
 integer index

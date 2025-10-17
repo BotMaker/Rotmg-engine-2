@@ -20,6 +20,16 @@ for r = 1 to grid_rows do
 end for
 
 
+global procedure grid_init()
+empty = {}
+empty_freelist = {}
+
+for r = 1 to grid_rows do
+    empty = append(empty, repeat({}, grid_cols))
+    empty_freelist = append(empty_freelist, repeat({}, grid_cols))
+end for
+end procedure 
+
 ------------------------------------------------------------
 -- Get chunk from world coordinates
 ------------------------------------------------------------

@@ -1,9 +1,9 @@
 
 atom crypt32
-puts(1," base64")
+
 crypt32= open_dll("Crypt32.dll")
 if crypt32 = NULL then
-	 puts(1," Missing a required dll file ")
+	 --puts(1," Missing a required dll file ")
  	
 end if
 constant xCryptBinaryToString = link_c_func(crypt32, "CryptBinaryToStringA", {C_POINTER,C_LONG,C_LONG,C_POINTER,C_POINTER}, C_INT)

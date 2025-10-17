@@ -130,21 +130,23 @@ include grid.ew
 include enemy.ew
 
 
-procedure map_load()
-  wmap_load("map.wmap")
-  wmap_load("nexus.wmap")
+procedure map_load(sequence fname)
+  --wmap_load("map.wmap")
+  --wmap_load("nexus.wmap")
   --wmap_load_2("nexus2.wmap")
-  wmap_load("world1.wmap")
+  --wmap_load("world1.wmap")
   --wmap_load_2("world2.wmap")
   --json_load("map.jm")
+ 
+  wmap_load(fname)
   obstacle=objectdata
-
+  
   player_x=floor(map_width/2)
   player_y=floor(map_height/2)
   
   --player_x=1127
   --player_y=1122
-
+   walkable={}
   for y=1 to map_height do
     walkable=append(walkable,repeat(1,map_width))
     for x=1 to map_width do
@@ -386,7 +388,7 @@ procedure init()
   
         ewShowCursor(1)
 		puts(1,"loading map\n")
-		map_load()
+		map_load("world1.wmap")
 		
 		
 		
@@ -950,9 +952,10 @@ procedure render()
   last_brightness=-1
 
   v=0
-    gl_texEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+
     for y=floor(camera_y)-(12+zoom_scale) to floor(camera_y)+(8+zoom_scale) do
       for x=floor(camera_x)-(14+zoom_scale) to floor(camera_x)+(6+zoom_scale) do
+	  if x>=1 and x<map_width and y>=1 and y<map_height then
          if lighting_switch=1 then
            brightness=get_brightness_render(x,y,player_x,player_y)
 		   
@@ -1004,7 +1007,7 @@ procedure render()
 
       v+=0.001
       end if
-      
+    end if  
     end for
   end for
 
@@ -1676,6 +1679,39 @@ integer ret
 			 puts(1,"lootbag create\n")
 			 ?equip_get_random( )
 			 
+		   end if
+		   
+		   if key_check('1')  then
+		     enemy_init()
+             projectile_enemy_init()
+             projectile_init()
+             grid_init()
+             lootbag_init()
+			 projectilelist=projectile_new()
+			 projectile_enemy_list = projectile_enemy_new()
+			 map_load("world1.wmap")
+		   end if
+		   
+		   if key_check('2')  then
+		     enemy_init()
+             projectile_enemy_init()
+             projectile_init()
+             grid_init()
+             lootbag_init()
+			 projectilelist=projectile_new()
+			 projectile_enemy_list = projectile_enemy_new()
+			 map_load("map.wmap")
+		   end if
+		   
+		   if key_check('3')  then
+		     enemy_init()
+             projectile_enemy_init()
+             projectile_init()
+             grid_init()
+             lootbag_init()
+			 projectilelist=projectile_new()
+			 projectile_enemy_list = projectile_enemy_new()
+			 map_load("nexus.wmap")
 		   end if
         else
          key_remove(keycode)
