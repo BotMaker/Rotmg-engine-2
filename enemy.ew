@@ -50,7 +50,7 @@ global procedure enemy_debug_draw()
 
 end procedure
 
-global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite,integer frame)
+global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite,integer frame,integer projectile)
     integer handle
     if length(enemy_freelist) > 0 then
         handle = enemy_freelist[1]
@@ -74,8 +74,8 @@ global function enemy_new(atom x, atom y, atom health, atom speed, integer sprit
         1500,                   -- ENEMY_SHOOT_INTERVAL (1.5 sec)
         8,                  -- ENEMY_SHOOT_RANGE
         x,                      -- ENEMY_START_X
-        y                       -- ENEMY_START_Y
-		
+        y,                       -- ENEMY_START_Y
+		projectile
     }
 
     return handle
@@ -128,30 +128,51 @@ integer bullet_id
 bullet_id = 0
 
 global procedure enemy_shoot(integer handle)
-    integer numofshoot, arcgap, ret, item
+    integer numofshoot, arcgap, ret, item,modify
     atom x, y
 
-    item = #910
+    item = enemy_list[handle][ENEMY_PROJECTILE]--
     x = enemy_list[handle][ENEMY_X]
     y = enemy_list[handle][ENEMY_Y]
-
-    if sequence(object_delta(item, object_numprojectiles)) then
-        numofshoot = real(object_delta(item, object_numprojectiles))
-    else
-        numofshoot = 1
+	
+	if item=1620 then --medusa
+       --numofshoot = real(object_delta(item, object_numprojectiles))
+	   numofshoot = 5
+	   arcgap = 10
+	   modify=-40
+    elsif item=1621 then --ent god
+	    modify=-30
+        arcgap = 10
+        numofshoot = 3
+		
+    elsif item=1618 then --sprite god
+	    modify=-35
+        arcgap = 10
+        numofshoot = 4
+		
+    elsif item=1623 then --flying brain
+	    modify=-40
+        arcgap = 10
+        numofshoot = 5
+		
+     elsif item=2330 then --Djinn
+	    modify=-40
+        arcgap = 10
+        numofshoot = 5
+		
+    else 
+	  modify=0
+      arcgap = 0
+      numofshoot = 1
     end if
 
-    if sequence(object_delta(item, object_arcgap)) then
-        arcgap = real(object_delta(item, object_arcgap))
-    else
-        arcgap = 0
-    end if
+    
 
     for i = 1 to numofshoot do
         ret = projectile_enemy_enter(
             projectile_enemy_list,
             x, y,
-            get_angle_to(x, y, player_x, player_y) + (arcgap * i),
+            get_angle_to(x, y, player_x, player_y) + (arcgap * i)+ modify,
             current_time(),
             bullet_id,
             item,

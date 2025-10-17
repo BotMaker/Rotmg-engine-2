@@ -507,10 +507,13 @@ end function
 
 global function object_projectile_delta( integer index, integer bullettype ,integer id )
   if length(object_list[ index ]) =0 then
+     --puts(1,"not found object_projectile_delta "&sprint(index)&"\n")
      return -1
+  else
+    --puts(1,"found object_projectile_delta "&sprint(index)&"\n")
   end if
   if integer(object_list[ index ][object_projectile][bullettype][id][2]) then
-    return -1
+    return -2
   end if
 
   return object_list[ index ][object_projectile][bullettype][id][2]

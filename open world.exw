@@ -121,7 +121,8 @@ global constant ENEMY_SHOOT_INTERVAL = 12
 global constant ENEMY_SHOOT_RANGE = 13
 global constant ENEMY_START_X = 14
 global constant ENEMY_START_Y = 15
-global constant ENEMY_FRAME = 16
+global constant ENEMY_PROJECTILE = 16
+global constant ENEMY_TYPE = 17
 
 global sequence enemy_list
 
@@ -444,7 +445,8 @@ enemy_dielist={}
 
         angle2=angle
         angle=toRotmgAngle(angle)
-
+		
+         
         lifetime=real(object_delta(ctype, object_lifetime))
         speed=real(object_delta(ctype, object_speed))
 
@@ -1688,16 +1690,27 @@ integer ret,index
           key_add(keycode)
 		    if key_check(' ')  then
 			
-			 ret=enemy_new(camera_x, camera_y, 100.0, 0.1, 5,rand(220)) 
+			 ret=enemy_new(camera_x, camera_y, 100.0, 0.1, 5,rand(220), #910) 
 
-	         ret=enemy_new(1020, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("White Demon"),object_sprite), (object_delta_mod(object_type_from_name("White Demon"),object_indexx)*7))
+	         ret=enemy_new(1020, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("White Demon"),object_sprite), (object_delta_mod(object_type_from_name("White Demon"),object_indexx)*7), object_type_from_name("White Demon") )
 			 
 			 index=(object_delta_mod(object_type_from_name("Sprite God"),object_indexx)*7)
-			 ret=enemy_new(1022, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Sprite God"),object_sprite), index)
+			 ret=enemy_new(1022, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Sprite God"),object_sprite), index, object_type_from_name("Sprite God"))
 			 
 			 index=(object_delta_mod(object_type_from_name("Medusa"),object_indexx)*7)
-			 ret=enemy_new(1024, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Medusa"),object_sprite), index)
+			 ret=enemy_new(1026, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Medusa"),object_sprite), index, object_type_from_name("Medusa"))
 			 
+			 index=(object_delta_mod(object_type_from_name("Ent God"),object_indexx)*7)
+			 ret=enemy_new(1028, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Ent God"),object_sprite), index, object_type_from_name("Ent God"))
+			 
+			 index=(object_delta_mod(object_type_from_name("Flying Brain"),object_indexx)*7)
+			 ret=enemy_new(1030, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Flying Brain"),object_sprite), index, object_type_from_name("Flying Brain"))
+			 
+			 index=(object_delta_mod(object_type_from_name("Ghost God"),object_indexx)*7)
+			 ret=enemy_new(1032, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Ghost God"),object_sprite), index, object_type_from_name("Ghost God"))
+			
+			 index=(object_delta_mod(object_type_from_name("Djinn"),object_indexx)*7)
+			 ret=enemy_new(1034, 1020, 100.0, 0.1, object_delta_mod(object_type_from_name("Djinn"),object_sprite), index, object_type_from_name("Djinn"))
 			
 			 
            end if

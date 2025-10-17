@@ -1,11 +1,11 @@
-White Demon
-Sprite God
-Medusa
-Ent God
+White Demon  1620
+Sprite God  1618
+Medusa 
+Ent God    1621
 Beholder
-Flying Brain
+Flying Brain 1623
 Slime God
 Ghost God
-Djinn
+Djinn   2330
 Leviathan
 

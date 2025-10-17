@@ -25,7 +25,7 @@
       </Spawn>
       <Flying/>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Demon Shot</ObjectId>
          <Damage>45</Damage>
          <Speed>50</Speed>
@@ -52,20 +52,11 @@
       <SpawnProb>1.0</SpawnProb>
       <Flying/>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Purple Magic</ObjectId>
          <Damage>100</Damage>
          <Speed>70</Speed>
          <LifetimeMS>2000</LifetimeMS>
-      </Projectile>
-      <Projectile id="1">
-         <ObjectId>Grey Boomerang</ObjectId>
-         <Damage>0</Damage>
-         <Speed>60</Speed>
-         <LifetimeMS>2400</LifetimeMS>
-         <ConditionEffect duration="10">Quiet</ConditionEffect>
-         <MultiHit/>
-         <ParticleTrail/>
       </Projectile>
       <DisplayId>{mountains.Sprite_God}</DisplayId>
    </Object>
@@ -107,7 +98,7 @@
          <Max>5</Max>
       </Spawn>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Green Bolt</ObjectId>
          <Damage>100</Damage>
          <Speed>70</Speed>
@@ -137,7 +128,7 @@
          <Max>5</Max>
       </Spawn>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Fire Bolt</ObjectId>
          <Damage>70</Damage>
          <Speed>80</Speed>
@@ -169,7 +160,7 @@
       </Spawn>
       <Flying/>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bolt</ObjectId>
          <Damage>120</Damage>
          <Speed>50</Speed>
@@ -208,7 +199,7 @@
       </Spawn>
       <Flying/>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Pink Bolt</ObjectId>
          <Damage>50</Damage>
          <Speed>120</Speed>
@@ -232,18 +223,11 @@
       <Terrain>Mountains</Terrain>
       <SpawnProb>1.0</SpawnProb>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Red Fire</ObjectId>
          <Damage>80</Damage>
          <Speed>100</Speed>
          <LifetimeMS>1100</LifetimeMS>
-      </Projectile>
-      <Projectile id="1">
-         <ObjectId>Green Star</ObjectId>
-         <Damage>0</Damage>
-         <Speed>70</Speed>
-         <LifetimeMS>2000</LifetimeMS>
-         <ConditionEffect duration="6">Slowed</ConditionEffect>
       </Projectile>
       <DisplayId>{mountains.Slime_God}</DisplayId>
    </Object>
@@ -270,7 +254,7 @@
       </Spawn>
       <Flying/>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bolt</ObjectId>
          <Damage>120</Damage>
          <Speed>50</Speed>
@@ -290,7 +274,7 @@
       </Texture>
       <HitSound>monster/stone_walls_hit</HitSound>
       <DeathSound>monster/stone_walls_death</DeathSound>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bullet</ObjectId>
          <Speed>70</Speed>
          <Damage>80</Damage>
@@ -317,7 +301,7 @@
       </Texture>
       <HitSound>monster/wooden_walls_hit</HitSound>
       <DeathSound>monster/wooden_walls_death</DeathSound>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bullet</ObjectId>
          <Speed>30</Speed>
          <Damage>50</Damage>
@@ -342,7 +326,7 @@
       </Texture>
       <HitSound>monster/rocks_hit</HitSound>
       <DeathSound>monster/rocks_death</DeathSound>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bullet</ObjectId>
          <Speed>30</Speed>
          <Damage>50</Damage>
@@ -379,7 +363,7 @@
       <Flying/>
       <God/>
       <SpawnProb>0.75</SpawnProb>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bullet</ObjectId>
          <Damage>60</Damage>
          <Speed>60</Speed>
@@ -406,7 +390,7 @@
       <SpawnProb>0.025</SpawnProb>
       <XpMult>0</XpMult>
       <PerRealmMax>1</PerRealmMax>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bullet</ObjectId>
          <Damage>90</Damage>
          <Speed>10</Speed>
@@ -431,17 +415,11 @@
       <Terrain>Mountains</Terrain>
       <SpawnProb>0.55</SpawnProb>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Aqua Missile</ObjectId>
          <Damage>70</Damage>
          <Speed>67</Speed>
          <LifetimeMS>1700</LifetimeMS>
-      </Projectile>
-      <Projectile id="1">
-         <ObjectId>Blue Missile</ObjectId>
-         <Damage>90</Damage>
-         <Speed>85</Speed>
-         <LifetimeMS>1800</LifetimeMS>
       </Projectile>
       <DisplayId>{mountains.Leviathan}</DisplayId>
    </Object>
@@ -465,7 +443,7 @@
       <Quest/>
       <Level>20</Level>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>Fire Bolt</ObjectId>
          <Damage>100</Damage>
          <Speed>80</Speed>
@@ -495,7 +473,7 @@
       <Level>20</Level>
       <Flying/>
       <God/>
-      <Projectile id="0">
+      <Projectile>
          <ObjectId>White Bullet</ObjectId>
          <Damage>100</Damage>
          <Speed>60</Speed>
