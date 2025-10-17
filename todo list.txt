@@ -13,3 +13,25 @@ use a grid so I call nearby on it to get a list of enemy near the player save ha
 active ones nearby to the player and deactivate was that are active once there out of range of the player
 need to able to updated the enemy position in the grid just use a copy of grid.ew and rename it and name variables
 piercing MultiHit 
+
+
+add a key to nexus 
+add health regen in the nexus 
+add a portal to the world map in the nexus 
+
+create chest to store items in don't have a vault map so would have to place them in the nexus 
+need to create a chest class would be better to just modify the lootbag class remove the count down timer to despawn
+and don't delete if loot bag is empty add a variable to loot bag class to say if its a loot bag or chest 
+don't know if modfitying the lootbag class will work because when loading a new map all the loots bags are deleted 
+I think need a global sequence call chest that holds all the chest and items that could be used to recreate the lootbags
+every time the player is in the nexus 
+
+
+when the player is in the nexus automatic regen health by 25 points every half a second 
+
+maybe have the player position saved so when re entering the world map can position the player at the position it was at before entering the nexus or have randomly spawn some where on a beach like it does in the real game
+
+
+
+add the gods to the game already have them declared in mountines.xml make a spawner that create enemy at random in the game 
+chars16x16dMountains1.bmp

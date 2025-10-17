@@ -50,7 +50,7 @@ global procedure enemy_debug_draw()
 
 end procedure
 
-global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite)
+global function enemy_new(atom x, atom y, atom health, atom speed, integer sprite,integer frame)
     integer handle
     if length(enemy_freelist) > 0 then
         handle = enemy_freelist[1]
@@ -68,13 +68,14 @@ global function enemy_new(atom x, atom y, atom health, atom speed, integer sprit
         0,                      -- ENEMY_STATE
         0, 0,                   -- ENEMY_TARGET_X, ENEMY_TARGET_Y
         sprite,                 -- ENEMY_SPRITE
-        rand(220),              -- ENEMY_FRAMEINDEX
+        frame,              -- ENEMY_FRAMEINDEX
         grid_new(x, y, handle), -- ENEMY_GRID_HANDLE
         current_time() + 1000,  -- ENEMY_NEXT_SHOT
         1500,                   -- ENEMY_SHOOT_INTERVAL (1.5 sec)
         8,                  -- ENEMY_SHOOT_RANGE
         x,                      -- ENEMY_START_X
         y                       -- ENEMY_START_Y
+		
     }
 
     return handle

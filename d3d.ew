@@ -795,6 +795,7 @@ end procedure
 
 
 
+
 global procedure draw_spritesheet_tile(atom x, atom y, integer spr, integer frameindex)
 integer images_per_row
 atom tx,ty,tw,th
@@ -823,9 +824,6 @@ atom tx,ty,tw,th
   gl_texCoord2f ( {tx, ty+th}) gl_vertex3f({ x, y+1, 0 })
 
   gl_end ()
-  
- 
-
  
 
 end procedure
@@ -948,8 +946,8 @@ atom tx,ty,tw,th,offsetx,offsety
     
   end if
 
-  offsetx=(size/2)/2
-  offsety=(size/2)/2
+  offsetx=0--(size/2)/2
+  offsety=0--(size/2)/2
 
 
   tw = spritesheet_list[spr][spritesheet_texture_tw]
@@ -967,13 +965,12 @@ atom tx,ty,tw,th,offsetx,offsety
 
   gl_begin (GL_QUADS)
 
-  gl_texCoord2f ( {tx, ty}) gl_vertex3f({ x-offsetx, y-offsety, 0.1+1 })
-  gl_texCoord2f ( {tx+tw, ty}) gl_vertex3f({ (x+size)-offsetx, y-offsety, 0.1+1 })
-  gl_texCoord2f ( {tx+tw, ty+th}) gl_vertex3f({ (x+size)-offsetx, (y+size)-offsety, 0.1+0 })
-  gl_texCoord2f ( {tx, ty+th}) gl_vertex3f({ x-offsetx, (y+size)-offsety, 0.1+0 })
-
+  gl_texCoord2f ( {tx, ty}) gl_vertex3f({ x-offsetx, y-offsety, 0.1 })
+  gl_texCoord2f ( {tx+tw, ty}) gl_vertex3f({ (x+size)-offsetx, y-offsety, 0.1 })
+  gl_texCoord2f ( {tx+tw, ty+th}) gl_vertex3f({ (x+size)-offsetx, (y+size)-offsety, 0.1 })
+  gl_texCoord2f ( {tx, ty+th}) gl_vertex3f({ x-offsetx, (y+size)-offsety, 0.1 })
+  
   gl_end ()
-
 
 end procedure
 

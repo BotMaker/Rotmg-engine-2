@@ -399,7 +399,6 @@ procedure process_objects(sequence name)
       while nchild!=0 do
       	name2=tinyxml_node_value(nchild)
 
-        
 
         if equal(name2,"Projectile") then
           
@@ -460,7 +459,7 @@ sequence list
 list=dir("all\\")
 
 for i=3 to length(list) do
-  --puts(1,list[i][D_NAME]&"\n")
+  puts(1,list[i][D_NAME]&"\n")
   process_objects( list[i][D_NAME] )
   --sleep(1)
 end for
@@ -536,6 +535,22 @@ integer id
 end procedure
 object_bulletid_settype()
 
+procedure object_enemy_settype()
+integer id
+  for i=1 to length(object_list) do
+    if length(object_list[i]) then
+    if sequence(object_delta(i,object_enemy)) then
+     
+     puts(1,"enemy found "&object_delta(i,object_idd)&"\n")     
+    end if
+    end if
+  end for
+ 
+end procedure
+--object_enemy_settype()
+
+
+
 global function object_type_from_name(sequence name)
   for i=1 to length(object_list) do
     if sequence(object_delta(i,object_idd)) then
@@ -544,7 +559,9 @@ global function object_type_from_name(sequence name)
       end if
     end if
   end for
-  --puts(1,"not found "&name&"\n")
+  if length(name)>0 then
+  puts(1,"not found "&name&"\n")
+  end if
   return -1
 end function
 
