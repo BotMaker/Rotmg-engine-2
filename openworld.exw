@@ -42,7 +42,7 @@ global integer font0,font1,font2
 global integer spr_players
 constant lighting_switch = 0
 
-
+puts(1,"\n")
 puts(1,"loading xml data\n")
 include tinyxml.ew
 global atom doc
@@ -1731,8 +1731,8 @@ integer ret,index
            end if
 		   if key_check('Q')  then
 		     ret=lootbag_new(player_x, player_y,{#C03,equip_get_random( ),equip_get_random( ),equip_get_random( ), equip_get_random( ),-1,-1, -1} )
-			 puts(1,"lootbag create\n")
-			 ?equip_get_random( )
+			 --puts(1,"lootbag create\n")
+			 --?equip_get_random( )
 			 
 		   end if
 		   
@@ -1767,10 +1767,6 @@ integer ret,index
 			 projectilelist=projectile_new()
 			 projectile_enemy_list = projectile_enemy_new()
 			 map_load("nexus.wmap")
-		   end if
-		   if key_check('B')  then
-		     ?object_type_from_name("White Demon")
-			 puts(1,object_delta_mod(object_type_from_name("White Demon"),object_idd))
 		   end if
         else
          key_remove(keycode)

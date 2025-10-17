@@ -62,8 +62,6 @@ global function enemy_new(atom x, atom y, atom health, atom speed, integer sprit
 	
 	if sequence( object_delta(projectile, object_maxhitpoints) ) then
 	   health=real(object_delta(projectile, object_maxhitpoints))
-	  puts(1,"health found "&sprint(health)&"\n")
-     
 	end if
 			  
 

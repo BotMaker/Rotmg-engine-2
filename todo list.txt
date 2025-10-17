@@ -33,12 +33,14 @@ maybe have the player position saved so when re entering the world map can posit
 
 
 { done 
-add the gods to the game already have them declared in mountines.xml 
-add in projectile damage for gods it's include in the mountines.xml
-add in the gods health to enemy class 
+add the gods to the game already have them declared in mountines.xml  chars16x16dMountains1.bmp
+add in projectile damage for gods each gods projectile type does different amounts of damage
+add in the gods health to enemy class max health and starting 
+add in player projectile damage to enemy from equip item
 }
 
-add hit damage text to when a player projectile hits draw the amount of damage in text 
+add hit damage text when a player projectile hits draw the amount of damage in text above the enemy
 make a spawner that create enemy at random in the game 
-chars16x16dMountains1.bmp
+need to loot bag drop for the god random spawn a lootbag when god dies with a random items 
+
 
