@@ -167,14 +167,6 @@
          <LifetimeMS>2700</LifetimeMS>
          <Size>120</Size>
       </Projectile>
-      <Projectile id="1">
-         <ObjectId>Purple Star</ObjectId>
-         <Damage>0</Damage>
-         <Speed>70</Speed>
-         <LifetimeMS>3000</LifetimeMS>
-         <ConditionEffect duration="5">Blind</ConditionEffect>
-      </Projectile>
-      <DisplayId>{mountains.Beholder}</DisplayId>
    </Object>
    <Object type="0x657" id="Flying Brain">
       <Group>Gods</Group>
