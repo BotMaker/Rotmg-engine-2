@@ -3,16 +3,20 @@ add 8 more inventory slots to button class make them invisible
 add loot bag
 only when a the player is over a loot bag do you make the 8 more inventory slots invisible and usable
 get enemy to drop loot bags after death loot drops
+add the gods to the game already have them declared in mountines.xml  chars16x16dMountains1.bmp
+add in projectile damage for gods each gods projectile type does different amounts of damage
+add in the gods health to enemy class max health and starting health 
+add in player projectile damage to enemy from equip item
+add in debug switch to enable or disable draw and count of debug text 
 }
 
 equipment that can shoot bullet that can hit multiple targets by going through the enemy's instead of using the exit button when projectile hits a enemy make sure not delete the projectile if it multiple targets
-could add a arrow to point in the direction of the nearest enemy to the player
+could add a arrow to point in the direction of the nearest enemy to the player piercing MultiHit 
 
-need to create another grid this time for the enemy because I intend to spawn them all at the start of a map 
-use a grid so I call nearby on it to get a list of enemy near the player save having to iteration the whole list of enemy
-active ones nearby to the player and deactivate was that are active once there out of range of the player
-need to able to updated the enemy position in the grid just use a copy of grid.ew and rename it and name variables
-piercing MultiHit 
+
+use the grid to call the grid_nearby(x,y, dist 1 in opengl units) function to get a list of enemy near the player save having to iteration the whole list of enemy active ones nearby to the player that way only the one in range of the player are active when calling the update and draw function for the enemy modify them to take a sequence of enemy handles and loop through them that way only ever enemy within radius to the player postion are drawn and updated 
+how to code a enemy spawner like how not to over populate and spawn nearby the player  could just update the enemy_nearby and draw and update function to take a sequence argument of enemy handles to draw and update only enemy nearby the player would save m from creating a new grid for the world to spawn enemy just use the old enemy grid only spawn enemy close to the player  
+this way there iterating over every enemy in the game cause the grid nearby just gets a list of enemy within chunk or chucks within a dist from the x and y  only updating and draw nearby enemy to the player position  
 
 
 add a key to nexus 
@@ -32,15 +36,35 @@ when the player is in the nexus automatic regen health by 25 points every half a
 maybe have the player position saved so when re entering the world map can position the player at the position it was at before entering the nexus or have randomly spawn some where on a beach like it does in the real game
 
 
-{ done 
-add the gods to the game already have them declared in mountines.xml  chars16x16dMountains1.bmp
-add in projectile damage for gods each gods projectile type does different amounts of damage
-add in the gods health to enemy class max health and starting 
-add in player projectile damage to enemy from equip item
-}
 
-add hit damage text when a player projectile hits draw the amount of damage in text above the enemy
+
+add hit damage text when a player projectile hits draw the amount of damage in text above the enemy create a global damage text list to use in the enemy projectile update function with handle of enemy that takes damage and amount of damage use it in the enemy health draw function 
+
+need to update the enemy projectile update function in the check Collison distance for bigger sprites like the gods use the sprite width of the enemy class handle to get the sprite if width equal 16 for gods or 8 for normal sized enemy
+
+
 make a spawner that create enemy at random in the game 
-need to loot bag drop for the god random spawn a lootbag when god dies with a random items 
+spawner use the distance by half the map width and map height the centre of the map calculate distance to player use that has the method to spawn gods closest to the centre of the map could check if mountain tile before placing at spawn location use to circles one for the outer perimeter  and on for the inner perimeter check with the outer circle if enemy spawn location is inside circle and check the enemy spawn location is outside of the inner circle  
+
+need loot bag drop for the gods randomly spawn a lootbag like when ever 50 god killed when god dies with random items 
 
 
+still don't have a game without levelling up and increasing stats health speed dex need to add in defence stat and use it in the enemy projectile function to calculate how much damage the player takes 
+gain experience points when killing a enemy would need lots of enemy to balance out the game play
+spawning the player near the beach's "search the c# source code for beach biome map files" dat17 got the beach data got the texture file should work find got the same projectile data need to write a spawn for place enemy out side but nearby the game camera view
+use the enemy class and projectile enemy class and xml all 
+
+in the inventory and loot bag check the equipment slot type against the drag and drop slot type before allowing them to swapped or equipped
+
+load in the player class xml data set equipment slot types for the inventory loading the xml data doesn't work so will need to
+create a new class called player types, include slotypes starting equipment starting stats max stats max hit points and starting hit points got the xml data its called dat2.xml 
+
+maybe makes a pixel perfect collision detection routine for the projectiles colliding first just do a simple distance check before preforming the pixel perfect pre compute the alpha mask use 8 bits per byte to represent a pixel x and y position on in the texture image are stored in texture atlas so would have to the function to work with textures make the alpha bit mask to the size of the texture problem might that game use opengl units to move everything ranging from 1 to 0 with tile width 32 need a function that convert a texture position to the alpha bit mast bit need a 8 bit function to check a certain bit in a byte 
+want the alpha mast to store a allocated memory the size of texture 1 byte is used for 8 pixel position in the texture use peek because its faster than sequence indexing 
+
+need to add the option to place the player at the bottom of the screen of the middle to make it easier to kill the gods without taken lots of damage  
+
+add auto health regen to the player read the amount from the dat2.xml reghealth add a timer to fire every couple of seconds and increases the player health by that amounts 
+
+
+tidy up code include move all global to top of files

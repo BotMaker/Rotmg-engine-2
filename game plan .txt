@@ -1,0 +1,56 @@
+code manages a fixed grid system used to organize and track objects, mainly enemies, across a large game world. The world is divided into many small square sections called chunks, which make it faster and easier to find and update things near the player instead of checking everything in the world. Each chunk stores a list of enemies currently inside it, along with a second list that keeps track of any empty or reusable slots.
+
+When the grid system starts, it sets up a large two-dimensional layout of these chunks based on the world size and chunk size. Every chunk begins empty, ready to store enemies as they are added to the world. The grid can be reset or cleared at any time to return it to its starting state.
+
+The system can calculate which chunk belongs to any given position in the world by dividing the position coordinates by the chunk size. This is used to place enemies into the correct chunk when they spawn or move.
+
+Enemies are linked to the grid through handles stored in a master list. Each handle keeps information about the enemy’s position, the chunk it belongs to, and its slot within that chunk. When an enemy moves, the grid checks whether it has crossed into a new chunk. If it has, the system removes it from the old one and places it in the new one, keeping all the data consistent.
+
+When an enemy is deleted or dies, the system removes it from its chunk and marks its slot as free so that space can be reused later. There are safety checks that go through every chunk and make sure all listed enemies actually exist and are in the correct place. If any invalid or leftover references are found, they are removed.
+
+The grid can also be used to find all enemies near a given point, such as around the player, by checking only the nearby chunks instead of the whole world. This makes nearby searches much faster and more efficient.
+
+The system also includes debugging tools that can summarize how many grid cells are in use, how many are free, how many total entries exist, and how many active enemies are currently registered. This information can be drawn on the screen to help monitor performance and confirm that the grid is working correctly.
+
+In simple terms, this code builds and maintains a world-sized map divided into smaller zones, automatically keeping track of where every enemy is and ensuring their positions stay accurate as they move, spawn, and disappear.
+
+
+
+enemy code controls how enemies in the game are created, updated, moved, and removed. It keeps track of all enemies using a main list, where each enemy has information such as position, health, speed, sprite, and state. When an enemy dies, its spot in the list can be reused later instead of always adding new ones.
+
+When the game starts or a level loads, everything is reset so no old enemies remain. The code also includes a small debugging system that counts how many enemies exist, how many are active, and how many have been freed, then shows that information on screen.
+
+When a new enemy is made, it is given its position, health, speed, sprite, and other details. Each enemy also has its own grid position so the game can quickly find which enemies are near the player. Enemies can shoot projectiles depending on what type they are, and different enemies can have different shooting patterns, such as spreading bullets or firing several at once.
+
+Enemies change their behavior depending on what is happening around them. If the player is far away, they wander around randomly near where they started. If the player comes closer, they begin to chase. If their health becomes low, they try to flee. While in any of these states, if the player comes within range, the enemy can shoot at them after a short cooldown time.
+
+Enemies move smoothly toward their targets by calculating the direction they need to go, then stepping forward at their own speed. If they wander too far from where they started, they return. The system updates their position in the grid so that the rest of the game always knows where they are.
+
+When an enemy dies or needs to be removed, it is deleted from the main list, taken out of the grid, and its spot is saved for future reuse.
+
+The overall purpose of the code is to manage every part of the enemy’s life cycle—spawning, movement, shooting, fleeing, and deletion—while keeping it efficient and organized. It defines how enemies behave and react to the player in a way that feels alive and dynamic.
+
+
+
+
+The current plan focuses on optimizing how enemies are handled, improving game performance, and expanding the player experience with new systems and features. The first major change involves using the grid system more efficiently. Instead of iterating through the entire list of enemies each frame, the game will call the function grid_nearby(x, y, dist) to retrieve only the enemies that are close to the player, within a set distance measured in OpenGL units. Both the enemy update and draw functions will be modified so that they accept a sequence of enemy handles and loop through only the nearby ones. This ensures that only enemies in range of the player are active, updated, and rendered, greatly reducing unnecessary processing and improving performance.
+
+The next step is to create a proper enemy spawner system. The spawner should generate enemies intelligently—never too close to the player, never overpopulating the area, and ideally only within a defined radius or zone around the player’s position. Rather than maintaining a separate grid for world spawning, the existing enemy grid can be reused for this purpose. The same nearby logic can be applied to manage which enemies are updated and drawn. This approach ensures that the game world feels populated without wasting CPU resources on distant, inactive entities.
+
+In the Nexus, several new mechanics will be added to make it function as a central hub or safe zone. A key will be introduced to unlock or enter the Nexus. While inside, the player’s health will automatically regenerate—specifically by 25 points every half a second—providing a recovery period between battles. A portal will connect the Nexus back to the world map, allowing players to travel seamlessly between the two. The game will either save the player’s position when they leave the world so it can be restored upon re-entry, or alternatively, respawn them in a random location along a beach, similar to how the original game works.
+
+To compensate for the lack of a vault map, item storage will be handled through chests placed in the Nexus. The chest system can be implemented by modifying the existing loot bag class. The countdown timer that causes loot bags to despawn will be removed, and a flag will be added to differentiate between normal loot bags and persistent chests. These containers should not be deleted even when empty. However, since loot bags are normally cleared when loading new maps, a global sequence named chest will be introduced to store chest data, allowing them to be recreated whenever the Nexus is loaded. This ensures persistent storage for player items across sessions.
+
+Combat feedback will also be improved. When the player’s projectiles hit enemies, damage numbers will appear above the affected targets, displaying how much damage was dealt. A global damage text list will be used to store information about which enemy was hit and by how much, and this data will be drawn during the enemy health render step. Projectile collision will also become more accurate. Since larger enemies like gods use wider sprites, the collision check will use the sprite’s width from the enemy class to determine whether the projectile actually makes contact.
+
+A new enemy spawner system will also control how and where enemies appear across the map. The spawner will calculate spawn locations based on the player’s distance from the centre of the map, with gods tending to appear closer to the centre. It will also check tile types to avoid placing enemies in invalid areas such as mountains. The system will use two circular boundaries: the outer circle defines the area where enemies can spawn, and the inner circle ensures they do not appear too close to the player. Gods will have a chance to drop loot bags when killed, for example after every 50th god defeated, with randomized item contents to reward progress.
+
+The game’s progression system will be expanded by introducing experience points, levelling, and additional stats. The player will gain experience from killing enemies, allowing them to increase attributes such as health, speed, and dexterity. A new defence stat will also be added, which will reduce damage taken from enemy projectiles. These mechanics will help balance gameplay and make progression more rewarding. When spawning into the world, the player will appear near beach areas, using existing biome data from dat17 which includes beach textures and positions. Enemies will spawn just outside the camera view so that encounters feel natural without overwhelming the player as soon as they appear.
+
+The inventory and equipment system will be refined to enforce slot-type validation. Items can only be swapped or equipped if their slot types are compatible. Since loading equipment slot types from the player XML data currently doesn’t work properly, a new class called PlayerTypes will be created. This class will handle slot types, starting equipment, starting and maximum stats, and health values, all sourced from dat2.xml.
+
+Projectile collisions will eventually move beyond simple distance checks by introducing a pixel-perfect detection system. This will involve precomputing an alpha bitmask for each texture, where every byte represents 8 pixels. The function will convert world or OpenGL coordinates to texture pixel positions, performing a quick distance test first before using the alpha mask for fine-grained precision. The memory for the mask will be allocated based on texture size, and peek will be used instead of sequence indexing for speed. This system will make collisions visually accurate, particularly for irregularly shaped sprites.
+
+For gameplay flexibility, the player will be able to start at either the centre or bottom of the screen. This adjustment makes it easier to fight gods without taking excessive damage. Player health regeneration will also be added outside the Nexus, reading the regeneration rate from dat2.xml and applying it every few seconds using a timer.
+
+Finally, the codebase will be cleaned up and reorganized. All global variables will be moved to the top of their respective files for clarity and consistency. The project will be refactored so that related systems—such as enemies, projectiles, player logic, and inventory—are properly grouped. The goal is to create a cleaner, more maintainable structure that keeps performance high while supporting new gameplay systems.

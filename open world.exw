@@ -1,5 +1,51 @@
-puts(1,"start realm of the god engine\n")
+global constant lighting_switch = 0
+global constant debug_draw_switch = 0
+global constant console_output_switch = 0
+global atom camera_x,camera_y,camera_z,camera_yaw
+camera_yaw=90
+camera_x=86
+camera_y=84
+camera_z=21 --values from rotmg changred from 12
 
+global sequence mapdata,objectdata,sizedata,sprdata,framedata
+mapdata={}
+objectdata={}
+sizedata={}
+sprdata={}
+framedata={}
+
+global integer lootbag_enabled,lootbag_enable_id
+lootbag_enabled=0
+lootbag_enable_id=0
+global integer map_width,map_height
+
+
+-- Enemy constants
+global constant ENEMY_X = 1
+global constant ENEMY_Y = 2
+global constant ENEMY_HEALTH = 3
+global constant ENEMY_SPEED = 4
+global constant ENEMY_STATE = 5
+global constant ENEMY_TARGET_X = 6
+global constant ENEMY_TARGET_Y = 7
+global constant ENEMY_SPRITE = 8
+global constant ENEMY_FRAMEINDEX = 9
+global constant ENEMY_GRID_HANDLE = 10
+global constant ENEMY_NEXT_SHOT = 11
+global constant ENEMY_SHOOT_INTERVAL = 12
+global constant ENEMY_SHOOT_RANGE = 13
+global constant ENEMY_START_X = 14
+global constant ENEMY_START_Y = 15
+global constant ENEMY_PROJECTILE = 16
+global constant ENEMY_MAXHEALTH = 17
+
+global sequence enemy_list
+
+if console_output_switch=1 then
+puts(1,"start realm of the god engine\n")
+end if
+without warning
+without type_check
 
 include eugl.ew
 include winbmp.ew
@@ -7,16 +53,6 @@ include misc.e
 include database.e
 include light.ew
 include base64.ew
-
-global atom camera_x,camera_y,camera_z,camera_yaw
-camera_yaw=90
-camera_x=86
-camera_y=84
-camera_z=21 --values from rotmg changred from 12
-
-
-without warning
-without type_check
 
 
 integer keyboard_char
@@ -40,10 +76,11 @@ include projectile_enemy.ew
 
 global integer font0,font1,font2
 global integer spr_players
-constant lighting_switch = 0
 
-puts(1,"\n")
-puts(1,"loading xml data\n")
+if console_output_switch=1 then
+  puts(1,"loading xml data\n")
+end if
+
 include tinyxml.ew
 global atom doc
 doc= tinyxml_document()
@@ -65,19 +102,9 @@ global sequence walkable,obstacle
 walkable={}
 obstacle={}
 
-global sequence mapdata,objectdata,sizedata,sprdata,framedata
-mapdata={}
-objectdata={}
-sizedata={}
-sprdata={}
-framedata={}
-
-global integer lootbag_enabled,lootbag_enable_id
-lootbag_enabled=0
-lootbag_enable_id=0
-global integer map_width,map_height
 map_width=0
 map_height=0
+
 
 include wmap.ew
 include json.ew
@@ -105,29 +132,11 @@ include lootbag.ew
 
 
 
--- Enemy constants
-global constant ENEMY_X = 1
-global constant ENEMY_Y = 2
-global constant ENEMY_HEALTH = 3
-global constant ENEMY_SPEED = 4
-global constant ENEMY_STATE = 5
-global constant ENEMY_TARGET_X = 6
-global constant ENEMY_TARGET_Y = 7
-global constant ENEMY_SPRITE = 8
-global constant ENEMY_FRAMEINDEX = 9
-global constant ENEMY_GRID_HANDLE = 10
-global constant ENEMY_NEXT_SHOT = 11
-global constant ENEMY_SHOOT_INTERVAL = 12
-global constant ENEMY_SHOOT_RANGE = 13
-global constant ENEMY_START_X = 14
-global constant ENEMY_START_Y = 15
-global constant ENEMY_PROJECTILE = 16
-global constant ENEMY_MAXHEALTH = 17
 
-global sequence enemy_list
 
 include grid.ew
 include enemy.ew
+--include spawner.ew
 
 
 procedure map_load(sequence fname)
@@ -270,8 +279,9 @@ object_bitmaps={}
 
 procedure init()
         integer tex,spr
-		
-		puts(1,"loading graphics\n")
+		if console_output_switch=1 then
+		  puts(1,"loading graphics\n")
+		end if
 
         --disable vsyps
         if wgl_supportsExtension("WGL_EXT_swap_control") then
@@ -365,7 +375,9 @@ procedure init()
         object_bitmaps=append(object_bitmaps,{"chars16x16rEncounters", spr,spritesheet_list[spr][4],spritesheet_list[spr][5]})
         tex_light=texture_load("data\\pro.bmp")
 
-        puts(1,"computing graphic lookup tables\n")
+        if console_output_switch=1 then
+          puts(1,"computing graphic lookup tables\n")
+		end if
 
         ground_set_sprite(object_bitmaps)
 
@@ -394,7 +406,9 @@ procedure init()
 		--gl_polygonMode(GL_FRONT_AND_BACK,GL_LINE)
   
         ewShowCursor(1)
-		puts(1,"loading map\n")
+		if console_output_switch=1 then
+		  puts(1,"loading map\n")
+		end if
 		map_load("world1.wmap")
 		--map_load2()
 		
@@ -1379,6 +1393,7 @@ gl_color4f({1, 1,1, 1})
 
   player_draw()
   --player_name_draw()
+  
   projectile_update_new() 
    projectile_enemy_update_new()
    lootbag_draw()
@@ -1428,16 +1443,18 @@ gl_color4f({1, 1,1, 1})
   
 
    
-   if current_time()>debug_time then
+   if current_time()>debug_time and debug_draw_switch=1 then
      grid_debug_summary_full()
 	 enemy_debug_count()
 	 projectile_debug()
 	 debug_time=current_time()+1000
    end if
-
-   grid_debug_summary_draw()
-   enemy_debug_draw()
-   projectile_debug_draw()
+    
+   if debug_draw_switch=1 then
+     grid_debug_summary_draw()
+     enemy_debug_draw()
+     projectile_debug_draw()
+   end if
    --draw_dist()
    
 
@@ -1767,6 +1784,8 @@ integer ret,index
 			 projectilelist=projectile_new()
 			 projectile_enemy_list = projectile_enemy_new()
 			 map_load("nexus.wmap")
+			 player_x=80
+			 player_y=76
 		   end if
         else
          key_remove(keycode)

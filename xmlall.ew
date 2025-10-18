@@ -361,9 +361,9 @@ procedure process_objects(sequence name)
   att=tinyxml_frist_attribute(root)
   if att then
   	
-    puts(1,tinyxml_attribute_name(att)&"  ")
+    --puts(1,tinyxml_attribute_name(att)&"  ")
 
-    puts(1,tinyxml_attribute_value(att)&"\n")
+    --puts(1,tinyxml_attribute_value(att)&"\n")
   end if
 
   child=tinyxml_element_firstchild(root)
@@ -463,7 +463,7 @@ sequence list
 list=dir("all\\")
 
 for i=3 to length(list) do
-  puts(1,list[i][D_NAME]&"\n")
+  --puts(1,list[i][D_NAME]&"\n")
   process_objects( list[i][D_NAME] )
   --sleep(1)
 end for
@@ -548,7 +548,7 @@ integer id
     if length(object_list[i]) then
     if sequence(object_delta(i,object_enemy)) then
      
-     puts(1,"enemy found "&object_delta(i,object_idd)&"\n")     
+     --puts(1,"enemy found "&object_delta(i,object_idd)&"\n")     
     end if
     end if
   end for
@@ -606,7 +606,7 @@ procedure file_enter(sequence name)
   end for
 
   file_list=append(file_list,name)
-  puts(1,name&"\n")
+  --puts(1,name&"\n")
 end procedure
 
 --for i=1 to length(object_list) do

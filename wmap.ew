@@ -321,7 +321,9 @@ global procedure wmap_load(sequence fname)
   width=input_stream_readint(input)
   height=input_stream_readint(input)
 
-  puts(1,"input length: "&sprint(input_stream_length(input))&"  width: "&sprint(width)&" height: "&sprint(height)&"\n")
+  if console_output_switch=1 then
+    puts(1,"input length: "&sprint(input_stream_length(input))&"  width: "&sprint(width)&" height: "&sprint(height)&"\n")
+  end if
   --?width
   --?height
 

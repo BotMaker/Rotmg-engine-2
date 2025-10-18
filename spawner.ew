@@ -1,0 +1,158 @@
+-----------------------------------------------------
+-- Enemy Spawner
+-----------------------------------------------------
+
+-- Constants (tweak as needed)
+constant MAX_ENEMIES_GLOBAL       = 200
+constant MAX_ENEMIES_NEAR_PLAYER  = 20
+constant SPAWN_RADIUS_MIN         = 10.0
+constant SPAWN_RADIUS_MAX         = 80.0
+constant SPAWN_COOLDOWN_MS        = 1000
+constant SPAWN_POINT_COOLDOWN_MS  = 5000
+constant MAX_SPAWNS_PER_TICK      = 2
+constant DESPAWN_DISTANCE         = 200.0
+constant CHECK_CLEARANCE          = 2.0
+
+-- Each spawn point = {x, y, last_spawn_time}
+global sequence spawn_points
+spawn_points = {}
+
+-----------------------------------------------------
+-- Initialize spawn points (call once at start)
+-----------------------------------------------------
+procedure spawn_points_init(atom world_w, atom world_h, integer count)
+    atom angle, r
+    spawn_points = {}
+    for i = 1 to count do
+       angle = rand(1000) / 1000 * (2 * PI)
+       r = SPAWN_RADIUS_MIN + rand(1000) / 1000 * (SPAWN_RADIUS_MAX - SPAWN_RADIUS_MIN)
+        spawn_points = append(
+            spawn_points,
+            {world_w / 2 + cos(angle) * r, world_h / 2 + sin(angle) * r, -999999}
+        )
+    end for
+end procedure
+
+-----------------------------------------------------
+-- Check if candidate position is valid
+-----------------------------------------------------
+function is_valid_spawn(atom sx, atom sy, atom px, atom py)
+    atom d
+    integer nearby
+
+    d = sqrt((sx - px) * (sx - px) + (sy - py) * (sy - py))
+    if d < SPAWN_RADIUS_MIN or d > SPAWN_RADIUS_MAX then
+        return 0
+    end if
+
+    --if tile_is_solid(sx, sy) then
+    --    return 0
+    --end if
+
+    nearby = length(grid_query(sx, sy, CHECK_CLEARANCE))
+    if nearby > 0 then
+        return 0
+    end if
+
+    return 1
+end function
+
+-----------------------------------------------------
+-- Count total enemies and nearby enemies
+-----------------------------------------------------
+function count_alive_enemies()
+    integer i, count
+    count = 0
+    for i = 1 to length(enemy_list) do
+        if length(enemy_list[i]) then
+            count += 1
+        end if
+    end for
+    return count
+end function
+
+function count_enemies_near(atom px, atom py, atom radius)
+    integer i, count
+    atom ex, ey, d
+    count = 0
+    for i = 1 to length(enemy_list) do
+        if length(enemy_list[i]) then
+            ex = enemy_list[i][ENEMY_X]
+            ey = enemy_list[i][ENEMY_Y]
+            d = sqrt((ex - px)*(ex - px) + (ey - py)*(ey - py))
+            if d <= radius then
+                count += 1
+            end if
+        end if
+    end for
+    return count
+end function
+
+-----------------------------------------------------
+-- Main spawn manager (call every frame / tick)
+-----------------------------------------------------
+procedure spawn_manager_update()
+    integer now, global_count, near_count
+    atom px, py, sx, sy
+    integer i, attempts
+    sequence sp
+    static atom next_spawn_time = 0
+
+    now = current_time()
+    px = player_x()
+    py = player_y()
+    attempts = 0
+
+    global_count = count_alive_enemies()
+    if global_count >= MAX_ENEMIES_GLOBAL then
+        return
+    end if
+
+    near_count = count_enemies_near(px, py, SPAWN_RADIUS_MAX)
+    if near_count >= MAX_ENEMIES_NEAR_PLAYER then
+        return
+    end if
+
+    if now < next_spawn_time then
+        return
+    end if
+
+    for i = 1 to length(spawn_points) do
+        sp = spawn_points[i]
+        sx = sp[1]
+        sy = sp[2]
+
+        if now - sp[3] >= SPAWN_POINT_COOLDOWN_MS then
+            if is_valid_spawn(sx, sy, px, py) then
+                enemy_new(sx, sy, 100, 0.3, 1)
+                spawn_points[i][3] = now
+                attempts += 1
+                if attempts >= MAX_SPAWNS_PER_TICK then
+                    exit
+                end if
+            end if
+        end if
+    end for
+
+    next_spawn_time = now + SPAWN_COOLDOWN_MS + rand(-250, 250)
+end procedure
+
+-----------------------------------------------------
+-- Despawn enemies too far away (optional)
+-----------------------------------------------------
+procedure despawn_far_enemies()
+    integer i
+    atom px, py, ex, ey, d
+    px = player_x()
+    py = player_y()
+    for i = 1 to length(enemy_list) do
+        if length(enemy_list[i]) then
+            ex = enemy_list[i][ENEMY_X]
+            ey = enemy_list[i][ENEMY_Y]
+            d = sqrt((ex - px)*(ex - px) + (ey - py)*(ey - py))
+            if d > DESPAWN_DISTANCE then
+                enemy_kill_or_deactivate(i)
+            end if
+        end if
+    end for
+end procedure

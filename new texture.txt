@@ -1,0 +1,142 @@
+global constant texNum = 80
+global constant texID  = allocate(4 * texNum)
+
+integer width, height
+
+global constant texture_width  = 1
+global constant texture_height = 2
+
+sequence images_address
+global sequence alpha_mask_address
+alpha_mask_address = {}
+
+-----------------------------------------------------
+-- Return whether a bit is set in a byte (fast)
+-----------------------------------------------------
+global function bit_test(atom byte_val, integer bit_index)
+    return and_bits(byte_val, power(2, bit_index)) != 0
+end function
+
+-----------------------------------------------------
+-- Build alpha bitmask in allocated memory
+-- 1 bit per pixel, 8 pixels per byte
+-----------------------------------------------------
+global function make_alpha_mask(atom rgba_addr, integer w, integer h)
+    integer total_bits, total_bytes
+    atom mask_addr
+    atom byte_accum
+    integer bit_index, byte_index
+    atom alpha_val
+
+    total_bits  = w * h
+    total_bytes = ceil(total_bits / 8)
+    mask_addr   = allocate(total_bytes)
+    mem_set(mask_addr, 0, total_bytes)
+
+    bit_index = 0
+    byte_accum = 0
+    byte_index = 0
+
+    for y = 0 to h - 1 do
+        for x = 0 to w - 1 do
+            alpha_val = peek(rgba_addr + ((y * w + x) * 4) + 3)
+            if alpha_val > 0 then
+                byte_accum = or_bits(byte_accum, power(2, remainder(bit_index, 8)))
+            end if
+
+            bit_index += 1
+
+            if remainder(bit_index, 8) = 0 then
+                poke(mask_addr + byte_index, byte_accum)
+                byte_index += 1
+                byte_accum = 0
+            end if
+        end for
+    end for
+
+    if remainder(bit_index, 8) != 0 then
+        poke(mask_addr + byte_index, byte_accum)
+    end if
+
+    return mask_addr
+end function
+
+-----------------------------------------------------
+-- Check if a pixel at (x,y) in a texture is opaque
+-----------------------------------------------------
+global function mask_pixel_opaque(atom mask_addr, integer w, integer x, integer y)
+    integer bit_index, byte_index, bit_in_byte
+    atom byte_val
+
+    bit_index   = y * w + x
+    byte_index  = floor(bit_index / 8)
+    bit_in_byte = remainder(bit_index, 8)
+
+    byte_val = peek(mask_addr + byte_index)
+    return and_bits(byte_val, power(2, bit_in_byte)) != 0
+end function
+
+-----------------------------------------------------
+-- Texture creation + mask build
+-----------------------------------------------------
+procedure makeTextureImage(sequence filename, integer tex_name)
+    sequence image, col
+    atom image2, pos, pos2, mask_addr
+
+    image = load_bmp(filename)
+
+    gl_bindTexture(GL_TEXTURE_2D, peek4u(texID + tex_name * 4))
+
+    image2 = allocate((image[3] * image[4]) * 4) -- RGBA buffer
+    mem_set(image2, 0, (image[3] * image[4]) * 4)
+
+    pos  = 0
+    pos2 = 0
+
+    for x = 1 to image[3] do
+        for y = 1 to image[4] do
+            col = peek({image[2] + pos2, 3})
+            for j = 1 to 3 do
+                poke(image2 + pos, peek(image[2] + pos2))
+                pos += 1
+                pos2 += 1
+            end for
+            if equal(col, {255,0,255}) then
+                poke(image2 + pos, 0)
+            else
+                poke(image2 + pos, 255)
+            end if
+            pos += 1
+        end for
+    end for
+
+    gl_texImage2D(GL_TEXTURE_2D, 0, 4, image[3], image[4], 0, GL_RGBA, GL_UNSIGNED_BYTE, image2)
+    gl_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+    gl_texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+    gl_bindTexture(GL_TEXTURE_2D, 0)
+
+    width  = image[3]
+    height = image[4]
+
+    -- ✅ Precompute alpha mask in memory
+    mask_addr = make_alpha_mask(image2, width, height)
+    alpha_mask_address = append(alpha_mask_address, mask_addr)
+
+    free(image2)
+    free(image[2])
+end procedure
+
+-----------------------------------------------------
+-- Texture loader wrapper
+-----------------------------------------------------
+global sequence texture_list
+integer tindex
+texture_list = {}
+tindex = 0
+
+global function texture_load(sequence fname)
+    makeTextureImage(fname, tindex)
+    tindex += 1
+    texture_list = append(texture_list, {width, height})
+    return tindex
+end function

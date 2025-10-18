@@ -172,6 +172,19 @@ global procedure enemy_shoot(integer handle)
       numofshoot = 1
     end if
 
+
+  if sequence(object_delta(item, object_numprojectiles)) then
+    numofshoot=real(object_delta(item, object_numprojectiles))
+  else
+    --numofshoot=1
+  end if
+  
+  if sequence(object_delta(item, object_arcgap)) then
+    arcgap=real(object_delta(item, object_arcgap))
+  else
+    --arcgap=0
+  end if
+
     
 
     for i = 1 to numofshoot do

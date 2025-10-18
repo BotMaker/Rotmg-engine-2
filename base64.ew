@@ -94,8 +94,3 @@ global function fromBase64(sequence st)
   free(dword_add)
   return res
 end function
-
-
-
-
-puts(1,fromBase64("V11HXUcUAQEYChwJAVJdmsThdd8LlWoeAw=="))

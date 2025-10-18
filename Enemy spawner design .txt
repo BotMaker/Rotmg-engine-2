@@ -1,0 +1,102 @@
+Enemy spawner design — spawn near player but never overpopulate
+
+Nice — here’s a compact, practical plan you can implement straight into your codebase. I’ll give you the principles, safety checks, and a working pseudocode/Euphoria-style example tuned to the style you’ve been using in the rest of your project.
+
+Goals
+
+Spawn enemies near the player (so they feel relevant) but not too close (avoid instant collisions / cheap deaths).
+
+Always respect global and local caps so the world never gets swamped.
+
+Keep spawning cheap and deterministic (use spawn pools, cooldowns, grid checks).
+
+Make spawn decisions fast (use spatial partitioning: grid/quadtree).
+
+Key parameters (tune these)
+
+MAX_ENEMIES_GLOBAL — hard limit on total enemies alive (e.g. 200).
+
+MAX_ENEMIES_NEAR_PLAYER — limit on how many may be within NEAR_RADIUS (e.g. 20).
+
+SPAWN_RADIUS_MIN — min distance from player to spawn (prevent spawning right on top), e.g. 6–12 units.
+
+SPAWN_RADIUS_MAX — max distance from player to spawn (keeps them relevant), e.g. 80–120 units.
+
+SPAWN_COOLDOWN — time between spawn attempts (ms).
+
+MAX_SPAWNS_PER_TICK — how many spawn attempts per tick (avoid huge bursts), e.g. 1–4.
+
+SPAWN_POINT_COOLDOWN — time a spawn point must wait before reuse.
+
+SPAWN_BUDGET — optional dynamic budget that increases/decreases with game difficulty.
+
+CHECK_RADIUS_CLEARANCE — radius around candidate spawn point to ensure no obstacles / players / enemies overlap.
+
+Core techniques
+
+Global & local caps
+Count alive_enemies_global. Also compute alive_near_player (use grid query). Only spawn if both below thresholds.
+
+Spawn points / ring selection
+Either maintain precomputed spawn points or generate candidate positions on a ring around the player between SPAWN_RADIUS_MIN and SPAWN_RADIUS_MAX. Precomputed points + cooldowns are easier to control (no bad nav).
+
+Spatial partitioning
+Use the same grid you already have for collision/enemy lookup to quickly count enemies near a position and test occupancy.
+
+Clearance & LOS checks
+For candidate pos, check:
+
+Not inside solid tile
+
+distance(candidate, player) >= SPAWN_RADIUS_MIN
+
+distance(candidate, player) <= SPAWN_RADIUS_MAX
+
+No other enemy inside CHECK_RADIUS_CLEARANCE
+
+Optional: line-of-sight not necessary if you want surprise; do LOS if you want fair spawns.
+
+Spawn throttling & cooldowns
+
+Limit spawn attempts per frame.
+
+Each spawn point has last_spawn_time to avoid immediate reuse.
+
+Use randomized intervals to avoid predictable waves.
+
+Object pooling
+Reuse enemy objects (freelists) instead of allocating frequently.
+
+Despawn rules
+Remove or deactivate enemies when:
+
+distance(player, enemy) > DESPAWN_DISTANCE and enemy is not currently engaged
+
+off-screen + idle + too old
+
+when global population needs to be reduced, pick the farthest idle enemies first.
+
+Adaptive caps (optional)
+Scale MAX_ENEMIES_NEAR_PLAYER by difficulty or performance (FPS).
+
+Simple spawn algorithm (steps per tick)
+
+If current_time >= next_spawn_time:
+
+Compute alive_global. If >= MAX_ENEMIES_GLOBAL → skip.
+
+Compute alive_near_player. If >= MAX_ENEMIES_NEAR_PLAYER → skip.
+
+For i = 1..MAX_SPAWNS_PER_TICK:
+
+pick spawn point (randomize)
+
+if spawn point on cooldown → continue
+
+validate candidate (clearance, nav, distance)
+
+if valid → spawn enemy, set spawn point cooldown, decrement spawn budget, break or continue depending on MAX_SPAWNS_PER_TICK
+
+set next_spawn_time = current_time + random_between(SPAWN_COOLDOWN * 0.8, SPAWN_COOLDOWN * 1.2)
+
+Pseudocode / Euphoria-style example

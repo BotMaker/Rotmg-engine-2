@@ -1,0 +1,70 @@
+Projectiles and Weapons:
+
+Implement piercing bullets for equipment: Allow projectiles to pass through enemies and hit multiple targets without deleting the projectile on the first hit (instead of destroying it like on exit button collision).
+Add a "MultiHit" feature for piercing projectiles.
+Add an arrow indicator that points to the nearest enemy relative to the player.
+
+
+Enemy Management and Optimization:
+
+Use the grid system to call grid_nearby(x, y, dist=1) (in OpenGL units) to get a list of nearby enemies to the player. This avoids iterating over the entire list of active enemies.
+Modify the enemy update and draw functions to accept a sequence of enemy handles, so only enemies within the player's radius are updated and drawn.
+For enemy spawning: Create a spawner that generates enemies randomly but avoids overpopulation by spawning only nearby the player. Use the existing enemy grid to fetch nearby enemies for updates/draws—leverage chunks within distance from the player's position to iterate only over relevant enemies.
+Update the enemy projectile collision check to account for sprite sizes: Use enemy sprite width (e.g., 16 for gods, 8 for normal enemies) when calculating collision distance.
+
+
+Nexus Features:
+
+Add a key item to access the nexus.
+Implement health regeneration in the nexus: Automatically regen 25 health points every 0.5 seconds when the player is inside.
+Add a portal in the nexus that leads to the world map.
+Save player position on world map exit, so re-entering places them at the previous spot (or alternatively, randomly spawn on a beach like in the original game).
+
+
+Storage and Loot:
+
+Create chests for item storage in the nexus (since no vault map exists).
+Modify the LootBag class: Remove the despawn countdown timer, prevent deletion if empty, and add a variable to distinguish between loot bags and chests.
+Handle chest persistence: Create a global sequence called "chests" to store all chest data and items. Use this to recreate loot bags/chests every time the player enters the nexus (as loot bags are deleted on map load).
+For gods: Implement random loot bag drops on death (e.g., every 50 gods killed), containing random items.
+
+
+UI and Feedback:
+
+Add damage text: When a player projectile hits an enemy, display the damage amount as floating text above the enemy. Use a global damage text list in the enemy projectile update function, storing the enemy handle and damage amount; render it in the enemy health draw function.
+
+
+Spawning Mechanics:
+
+Create a general enemy spawner: Spawn at random locations, prioritizing gods closer to the map center (calculate distance using half map width/height from center to player).
+Check spawn locations: Avoid mountain tiles; use inner/outer perimeter circles—ensure spawn is inside the outer circle but outside the inner one.
+Spawn players near beaches: Reference C# source code for beach biome map files (e.g., dat17 for beach data, texture files, projectile data). Use existing enemy/projectile classes and XML for placement outside but nearby the camera view.
+
+
+Leveling and Stats:
+
+Add leveling system: Increase stats like health, speed, dex, and add a defense stat. Use defense in enemy projectile calculations to reduce player damage taken.
+Gain experience points from killing enemies; balance gameplay with high enemy counts.
+Add auto health regen for the player: Read regen amount from dat2.xml (reghealth), use a timer to increase health every few seconds.
+Load player class data from dat2.xml: Create a new "PlayerTypes" class with slot types, starting equipment, starting/max stats, max/hit points. Set equipment slot types for inventory.
+
+
+Inventory and Equipment Handling:
+
+In inventory and loot bags: Before allowing drag-and-drop swaps or equipping, check if the equipment slot type matches the item's type.
+
+
+Collision Detection:
+
+Implement pixel-perfect collision for projectiles: Start with a simple distance check, then use pre-computed alpha masks (8 bits per byte for pixels).
+Handle texture atlas: Convert texture positions to bit masks (1 byte for 8 pixels); use OpenGL units (tile width 32, range 0-1). Allocate memory for mask size matching texture; use bit-checking functions (e.g., peek for speed over sequence indexing).
+
+
+Player Placement Options:
+
+Add an option to position the player at the bottom of the screen (instead of middle) to make fighting gods easier and reduce damage taken.
+
+
+Code Cleanup:
+
+Tidy up code: Move all global variables to the top of files.
